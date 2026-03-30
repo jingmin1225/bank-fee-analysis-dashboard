@@ -1,0 +1,30 @@
+services:
+  # ── BAM API (Node/Express) ─────────────────────────
+  - type: web
+    name: bam-api
+    runtime: node
+    region: frankfurt          # closest to Lyon/EU
+    plan: starter              # $7/mo — upgrade to standard for prod
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      # Paste your Supabase connection string here:
+      - key: DATABASE_URL
+        sync: false            # fill in Render dashboard — never commit secrets
+      - key: JWT_SECRET
+        generateValue: true    # Render auto-generates a strong secret
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: STORAGE_DRIVER
+        value: local           # change to "s3" when you add S3
+      - key: UPLOAD_DIR
+        value: ./uploads
+      # Comma-separated list — update after Netlify/Vercel deploy
+      - key: CORS_ORIGINS
+        value: https://your-frontend.netlify.app

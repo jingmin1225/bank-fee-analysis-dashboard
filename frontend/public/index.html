@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BAM Documentation Manager</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --color-background-primary:#ffffff;
+  --color-background-secondary:#f5f5f3;
+  --color-background-tertiary:#eeece6;
+  --color-text-primary:#1a1a18;
+  --color-text-secondary:#5f5e5a;
+  --color-text-tertiary:#9a9994;
+  --color-border-tertiary:rgba(0,0,0,0.10);
+  --color-border-secondary:rgba(0,0,0,0.18);
+  --color-border-primary:rgba(0,0,0,0.26);
+  --font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-mono:'SF Mono','Fira Code',monospace;
+  --border-radius-md:8px;
+  --border-radius-lg:12px;
+  --border-radius-xl:16px;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --color-background-primary:#1c1c1a;
+    --color-background-secondary:#252522;
+    --color-background-tertiary:#1a1a18;
+    --color-text-primary:#f0ede6;
+    --color-text-secondary:#a8a59e;
+    --color-text-tertiary:#6b6864;
+    --color-border-tertiary:rgba(255,255,255,0.08);
+    --color-border-secondary:rgba(255,255,255,0.14);
+    --color-border-primary:rgba(255,255,255,0.22);
+  }
+}
+body{font-family:var(--font-sans);font-size:14px;color:var(--color-text-primary);background:var(--color-background-tertiary);height:100vh;overflow:hidden}
+
+/* ── Layout ── */
+.layout{display:flex;height:100vh}
+.sidebar{width:220px;background:var(--color-background-primary);border-right:0.5px solid var(--color-border-tertiary);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ── Sidebar ── */
+.sidebar-logo{padding:16px 18px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.logo-mark{width:28px;height:28px;background:#185FA5;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600;letter-spacing:-0.5px;flex-shrink:0}
+.logo-text{font-size:13px;font-weight:500;line-height:1.2}
+.logo-sub{font-size:10px;color:var(--color-text-secondary)}
+.sidebar-section{padding:10px 10px 4px;font-size:10px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:0.08em;margin-top:8px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;margin:1px 6px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--color-text-secondary);transition:background 0.1s,color 0.1s;user-select:none}
+.nav-item:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.nav-item.active{background:#E6F1FB;color:#185FA5;font-weight:500}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:0.7}
+.nav-item.active .nav-icon{opacity:1}
+.nav-badge{margin-left:auto;background:#E24B4A;color:#fff;font-size:10px;padding:1px 5px;border-radius:10px;font-weight:500}
+
+/* ── Topbar ── */
+.topbar{height:52px;background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.topbar-title{font-size:15px;font-weight:500;flex:1}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:0.5px solid var(--color-border-secondary);border-radius:6px;font-size:13px;cursor:pointer;background:var(--color-background-primary);color:var(--color-text-primary);font-family:var(--font-sans);transition:background 0.1s;white-space:nowrap;user-select:none;text-decoration:none}
+.btn:hover{background:var(--color-background-secondary)}
+.btn:active{transform:scale(0.98)}
+.btn-primary{background:#185FA5;color:#fff;border-color:#185FA5}
+.btn-primary:hover{background:#0C447C}
+.btn-danger{background:#E24B4A;color:#fff;border-color:#E24B4A}
+.btn-danger:hover{background:#A32D2D}
+.btn-sm{padding:3px 8px;font-size:11px}
+
+/* ── Content ── */
+.content{flex:1;overflow:auto;padding:20px}
+
+/* ── Filter bar ── */
+.filter-bar{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar input,.filter-bar select{font-family:var(--font-sans);font-size:13px;padding:5px 10px;border:0.5px solid var(--color-border-tertiary);border-radius:6px;background:var(--color-background-secondary);color:var(--color-text-primary);outline:none}
+.filter-bar input:focus,.filter-bar select:focus{border-color:#185FA5}
+.filter-bar input{flex:1;min-width:180px}
+.filter-label{font-size:12px;color:var(--color-text-secondary);white-space:nowrap}
+
+/* ── Table ── */
+.table-wrap{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:8px;overflow:hidden}
+.table-toolbar{padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--color-border-tertiary);flex-wrap:wrap;min-height:44px}
+.batch-info{font-size:13px;color:var(--color-text-secondary)}
+.batch-info strong{color:var(--color-text-primary)}
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:600px}
+th{font-size:12px;font-weight:500;color:var(--color-text-secondary);text-align:left;padding:9px 14px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);white-space:nowrap;user-select:none}
+th.sortable{cursor:pointer}
+th.sortable:hover{color:var(--color-text-primary)}
+th.sort-asc::after{content:" ↑";color:#185FA5}
+th.sort-desc::after{content:" ↓";color:#185FA5}
+td{font-size:13px;padding:9px 14px;border-bottom:0.5px solid var(--color-border-tertiary);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.selected td{background:#E6F1FB}
+@media (prefers-color-scheme:dark){tr.selected td{background:#0C447C33}}
+tr:not(.selected):hover td{background:var(--color-background-secondary)}
+.cb{width:15px;height:15px;cursor:pointer;accent-color:#185FA5}
+code{font-family:var(--font-mono);font-size:11px;background:var(--color-background-secondary);padding:1px 5px;border-radius:3px}
+
+/* ── Inline row actions ── */
+.actions-cell{display:flex;align-items:center;gap:4px;opacity:0;transition:opacity 0.1s}
+tr:hover .actions-cell{opacity:1}
+.icon-btn{width:26px;height:26px;border:0.5px solid var(--color-border-tertiary);border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--color-background-primary);color:var(--color-text-secondary);font-size:12px;transition:background 0.1s,color 0.1s;flex-shrink:0}
+.icon-btn:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.icon-btn.delete:hover{background:#FCEBEB;color:#A32D2D;border-color:#F0959533}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;white-space:nowrap}
+.badge-blue{background:#E6F1FB;color:#185FA5}
+.badge-green{background:#EAF3DE;color:#3B6D11}
+.badge-amber{background:#FAEEDA;color:#854F0B}
+.badge-red{background:#FCEBEB;color:#A32D2D}
+.badge-gray{background:#F1EFE8;color:#5F5E5A}
+.badge-purple{background:#EEEDFE;color:#534AB7}
+.badge-teal{background:#E1F5EE;color:#0F6E56}
+@media (prefers-color-scheme:dark){
+  .badge-blue{background:#042C53;color:#85B7EB}
+  .badge-green{background:#173404;color:#97C459}
+  .badge-amber{background:#412402;color:#EF9F27}
+  .badge-red{background:#501313;color:#F09595}
+  .badge-gray{background:#2C2C2A;color:#B4B2A9}
+  .badge-purple{background:#26215C;color:#AFA9EC}
+  .badge-teal{background:#04342C;color:#5DCAA5}
+}
+
+/* ── Status dot ── */
+.status-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px}
+.dot-green{background:#639922}
+.dot-amber{background:#BA7517}
+.dot-red{background:#E24B4A}
+.dot-gray{background:#888780}
+
+/* ── Pagination ── */
+.pager{display:flex;align-items:center;gap:6px;padding:10px 14px;border-top:0.5px solid var(--color-border-tertiary);justify-content:space-between}
+.pager-info{font-size:12px;color:var(--color-text-secondary)}
+.pager-btns{display:flex;gap:4px}
+.pager-btn{width:28px;height:28px;border:0.5px solid var(--color-border-tertiary);border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;background:var(--color-background-primary);color:var(--color-text-secondary);user-select:none}
+.pager-btn:hover{background:var(--color-background-secondary)}
+.pager-btn.active{background:#185FA5;color:#fff;border-color:#185FA5}
+
+/* ── Stats ── */
+.stat-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.stat-card{background:var(--color-background-secondary);border-radius:8px;padding:12px 14px}
+.stat-label{font-size:11px;color:var(--color-text-secondary);margin-bottom:4px}
+.stat-val{font-size:22px;font-weight:500}
+.stat-sub{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+
+/* ── Context menu ── */
+.ctx-menu{position:fixed;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:4px;z-index:9999;min-width:188px;display:none;box-shadow:0 4px 24px rgba(0,0,0,0.13)}
+.ctx-menu.visible{display:block}
+.ctx-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:5px;font-size:13px;cursor:pointer;color:var(--color-text-primary);user-select:none;transition:background 0.1s}
+.ctx-item:hover{background:var(--color-background-secondary)}
+.ctx-item.danger{color:#A32D2D}
+.ctx-item.danger:hover{background:#FCEBEB}
+.ctx-sep{height:0.5px;background:var(--color-border-tertiary);margin:3px 6px}
+.ctx-icon{width:16px;text-align:center;font-size:13px;flex-shrink:0}
+
+/* ── Modals ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.36);display:none;align-items:center;justify-content:center;z-index:10000}
+.modal-overlay.visible{display:flex}
+.modal{background:var(--color-background-primary);border-radius:10px;border:0.5px solid var(--color-border-secondary);padding:24px;max-width:500px;width:92%;max-height:85vh;overflow-y:auto}
+.modal-title{font-size:15px;font-weight:500;margin-bottom:4px}
+.modal-sub{font-size:13px;color:var(--color-text-secondary);margin-bottom:20px}
+.form-row{margin-bottom:14px}
+.form-label{font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:5px;display:block}
+.form-input{width:100%;font-family:var(--font-sans);font-size:13px;padding:7px 10px;border:0.5px solid var(--color-border-tertiary);border-radius:6px;background:var(--color-background-secondary);color:var(--color-text-primary);outline:none}
+.form-input:focus{border-color:#185FA5}
+textarea.form-input{resize:vertical;min-height:70px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:0.5px solid var(--color-border-tertiary)}
+
+/* ── Toggle ── */
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:var(--color-border-secondary);border-radius:20px;cursor:pointer;transition:0.2s}
+.toggle-slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:0.2s}
+.toggle input:checked+.toggle-slider{background:#185FA5}
+.toggle input:checked+.toggle-slider::before{transform:translateX(16px)}
+.toggle-row{display:flex;align-items:center;gap:10px}
+.toggle-label{font-size:13px}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:10px 16px;font-size:13px;display:flex;align-items:center;gap:8px;z-index:99999;box-shadow:0 2px 12px rgba(0,0,0,0.1);opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;transform:translateY(6px)}
+.toast.show{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">BAM</div>
+      <div>
+        <div class="logo-text">Doc Manager</div>
+        <div class="logo-sub">Treasury Portal</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">Setup</div>
+    <div class="nav-item" data-page="request-types" onclick="showPage('request-types')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8h6M5 5h6M5 11h4"/></svg>
+      Request Types
+    </div>
+    <div class="nav-item" data-page="document-types" onclick="showPage('document-types')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h6l4 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4"/></svg>
+      Document Types
+    </div>
+    <div class="nav-item" data-page="doc-rules" onclick="showPage('doc-rules')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/><circle cx="13" cy="10" r="2.5"/><path d="M11.5 13.5l2 2"/></svg>
+      Documentation Rules
+    </div>
+    <div class="nav-item" data-page="doc-managers" onclick="showPage('doc-managers')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 13c0-3 2-4.5 5-4.5s5 1.5 5 4.5"/><circle cx="13" cy="6" r="1.5"/><path d="M10.5 13c0-2 1-3 2.5-3"/></svg>
+      Doc Managers
+    </div>
+
+    <div class="sidebar-section">Operations</div>
+    <div class="nav-item" data-page="dashboard" onclick="showPage('dashboard')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+      Dashboard
+      <span class="nav-badge">3</span>
+    </div>
+    <div class="nav-item" data-page="entities" onclick="showPage('entities')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14V7l6-5 6 5v7"/><path d="M6 14v-4h4v4"/></svg>
+      Entities
+    </div>
+
+    <div class="sidebar-section">Config</div>
+    <div class="nav-item" data-page="api" onclick="showPage('api')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h2m8 0h2M5 5l-2 3 2 3m6-6l2 3-2 3"/></svg>
+      API Integrations
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Request Types</div>
+      <div class="topbar-actions">
+        <div class="btn" onclick="exportData()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12h10"/></svg>
+          Export CSV
+        </div>
+        <div class="btn btn-primary" id="add-btn" onclick="openAddModal()">+ Add New</div>
+      </div>
+    </div>
+    <div class="content" id="main-content"></div>
+  </div>
+</div>
+
+<!-- Context menu -->
+<div class="ctx-menu" id="ctx-menu">
+  <div class="ctx-item" onclick="ctxAction('view')"><span class="ctx-icon">👁</span> View details</div>
+  <div class="ctx-item" onclick="ctxAction('edit')"><span class="ctx-icon">✏️</span> Edit</div>
+  <div class="ctx-item" onclick="ctxAction('duplicate')"><span class="ctx-icon">⎘</span> Duplicate</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="ctxAction('export-row')"><span class="ctx-icon">⬇</span> Export this row</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" onclick="ctxAction('delete')"><span class="ctx-icon">🗑</span> Delete</div>
+</div>
+
+<!-- Edit / Add modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event,'modal-overlay')">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<!-- Confirm delete modal -->
+<div class="modal-overlay" id="confirm-overlay" onclick="handleOverlayClick(event,'confirm-overlay')">
+  <div class="modal" id="confirm-content"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span id="toast-icon"></span>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   DATA STORE
+═══════════════════════════════════════ */
+const data = {
+  'request-types': [
+    {id:1, name:'Account Opening', description:'Required documents for new bank account opening', entityType:'Account', status:'Active', rules:5, createdAt:'2024-01-10'},
+    {id:2, name:'Account Closing', description:'Documentation for account closure procedures', entityType:'Account', status:'Active', rules:3, createdAt:'2024-01-11'},
+    {id:3, name:'Change in Signers', description:'Update authorized signatories on an account', entityType:'Signer', status:'Active', rules:4, createdAt:'2024-01-15'},
+    {id:4, name:'KYC Renewal', description:'Know Your Customer periodic review documents', entityType:'Company', status:'Active', rules:7, createdAt:'2024-02-01'},
+    {id:5, name:'Company Name Change', description:'Corporate name change documentation bundle', entityType:'Company', status:'Draft', rules:2, createdAt:'2024-02-10'},
+    {id:6, name:'Beneficial Owner Update', description:'Update beneficial ownership structure docs', entityType:'Authority', status:'Active', rules:3, createdAt:'2024-03-01'},
+    {id:7, name:'Mandate Renewal', description:'Bank mandate and authority renewal package', entityType:'Account', status:'Draft', rules:1, createdAt:'2024-03-15'},
+  ],
+  'document-types': [
+    {id:1, name:'Certificate of Incorporation', description:'Official document confirming company formation', category:'Certificate of Incorporation', entityType:'Company', isSensitive:false, status:'Active', createdAt:'2024-01-05'},
+    {id:2, name:'Passport Copy', description:'Personal identification for signers and owners', category:'Personal ID', entityType:'Signer', isSensitive:true, status:'Active', createdAt:'2024-01-06'},
+    {id:3, name:'Annual Balance Sheet', description:'Most recent audited financial statements', category:'Balance Sheet', entityType:'Company', isSensitive:false, status:'Active', createdAt:'2024-01-07'},
+    {id:4, name:'Board Resolution', description:'Board resolution authorizing the transaction', category:'Board Resolution', entityType:'Authority', isSensitive:false, status:'Active', createdAt:'2024-01-08'},
+    {id:5, name:'Bank Account Agreement', description:'Signed bank account terms and conditions', category:'Account Agreement', entityType:'Account', isSensitive:false, status:'Active', createdAt:'2024-01-09'},
+    {id:6, name:'Utility Bill (Address Proof)', description:'Recent utility bill for address verification', category:'Personal ID', entityType:'Signer', isSensitive:true, status:'Active', createdAt:'2024-01-12'},
+    {id:7, name:'Memorandum of Association', description:'Company constitutional document', category:'MoA / AoA', entityType:'Company', isSensitive:false, status:'Draft', createdAt:'2024-02-05'},
+    {id:8, name:'Power of Attorney', description:'Notarized power of attorney document', category:'PoA', entityType:'Authority', isSensitive:false, status:'Active', createdAt:'2024-02-20'},
+  ],
+  'doc-rules': [
+    {id:1, name:'EU Account Opening - Standard', requestType:'Account Opening', rank:1, conditions:'Bank is in EU, Account Type = Checking', documents:4, status:'Active', createdAt:'2024-01-20'},
+    {id:2, name:'EU Account Opening - Complex', requestType:'Account Opening', rank:2, conditions:'Bank is in EU, Revenue > 50M', documents:7, status:'Active', createdAt:'2024-01-20'},
+    {id:3, name:'US KYC Renewal', requestType:'KYC Renewal', rank:1, conditions:'Country of Company = US', documents:5, status:'Active', createdAt:'2024-02-01'},
+    {id:4, name:'Global Signer Change', requestType:'Change in Signers', rank:1, conditions:'All companies', documents:3, status:'Active', createdAt:'2024-02-05'},
+    {id:5, name:'APAC Account Opening', requestType:'Account Opening', rank:3, conditions:'Bank is in APAC region', documents:6, status:'Draft', createdAt:'2024-02-15'},
+    {id:6, name:'UK Beneficial Owner', requestType:'Beneficial Owner Update', rank:1, conditions:'Country of Account = UK', documents:4, status:'Active', createdAt:'2024-03-01'},
+  ],
+  'doc-managers': [
+    {id:1, name:'Sophie Laurent', email:'s.laurent@corp.com', docTypes:'Passport, Utility Bill', companies:'All', groups:'EMEA Treasury', status:'Active', createdAt:'2024-01-15'},
+    {id:2, name:'Marco Bianchi', email:'m.bianchi@corp.com', docTypes:'CoI, Board Resolution', companies:'EU Entities', groups:'Legal Team', status:'Active', createdAt:'2024-01-16'},
+    {id:3, name:'Aisha Khan', email:'a.khan@corp.com', docTypes:'Balance Sheet, MoA', companies:'APAC Entities', groups:'Finance', status:'Active', createdAt:'2024-02-01'},
+    {id:4, name:'James Porter', email:'j.porter@corp.com', docTypes:'PoA, Bank Agreements', companies:'All', groups:'Treasury Ops', status:'Inactive', createdAt:'2024-02-10'},
+  ],
+  'dashboard': [
+    {id:1, entityType:'Account', entityCode:'ACC-001', entityName:'Société Générale EUR', requestType:'Account Opening', docType:'Certificate of Incorporation', status:'Available', mandatory:true, manager:'Marco Bianchi', expDate:'2025-12-31', uploadDate:'2024-01-10', issuanceDate:'2023-12-01', uploadedBy:'S. Laurent'},
+    {id:2, entityType:'Signer', entityCode:'SGN-045', entityName:'Jean Dupont', requestType:'Change in Signers', docType:'Passport Copy', status:'WillExpireSoon', mandatory:true, manager:'Sophie Laurent', expDate:'2024-04-15', uploadDate:'2022-04-01', issuanceDate:'2014-04-10', uploadedBy:'A. Khan'},
+    {id:3, entityType:'Company', entityCode:'CMP-012', entityName:'Alpine Holding SA', requestType:'KYC Renewal', docType:'Annual Balance Sheet', status:'Expired', mandatory:true, manager:'Aisha Khan', expDate:'2023-11-30', uploadDate:'2023-01-15', issuanceDate:'2022-12-31', uploadedBy:'J. Porter'},
+    {id:4, entityType:'Account', entityCode:'ACC-002', entityName:'HSBC GBP Account', requestType:'Account Opening', docType:'Board Resolution', status:'Missing', mandatory:true, manager:'Marco Bianchi', expDate:'—', uploadDate:'—', issuanceDate:'—', uploadedBy:'—'},
+    {id:5, entityType:'Company', entityCode:'CMP-007', entityName:'Meridian Partners BV', requestType:'KYC Renewal', docType:'Memorandum of Association', status:'Available', mandatory:false, manager:'Aisha Khan', expDate:'2026-06-30', uploadDate:'2024-03-01', issuanceDate:'2024-01-15', uploadedBy:'S. Laurent'},
+  ],
+  'entities': [
+    {id:1, code:'ACC-001', name:'Société Générale EUR', type:'Account', country:'France', currency:'EUR', status:'Active', source:'Kyriba', createdAt:'2024-01-05'},
+    {id:2, code:'CMP-012', name:'Alpine Holding SA', type:'Company', country:'Switzerland', currency:'CHF', status:'Active', source:'Manual', createdAt:'2024-01-06'},
+    {id:3, code:'SGN-045', name:'Jean Dupont', type:'Signer', country:'France', currency:'—', status:'Active', source:'Kyriba', createdAt:'2024-02-01'},
+    {id:4, code:'ACC-002', name:'HSBC GBP Account', type:'Account', country:'United Kingdom', currency:'GBP', status:'Active', source:'Kyriba', createdAt:'2024-02-05'},
+  ],
+  'api': [
+    {id:1, name:'Kyriba Production', baseUrl:'https://api.kyriba.com/v1', authType:'OAuth2', scope:'treasury.read', status:'Connected', lastSync:'2024-03-28 14:22', createdAt:'2024-01-01'},
+    {id:2, name:'Kyriba Sandbox', baseUrl:'https://sandbox.kyriba.com/v1', authType:'OAuth2', scope:'treasury.read', status:'Disconnected', lastSync:'Never', createdAt:'2024-02-15'},
+  ],
+};
+
+/* ═══════════════════════════════════════
+   STATE
+═══════════════════════════════════════ */
+let currentPage = 'request-types';
+let selectedRows = new Set();
+let ctxRowId = null;
+let sortCol = null;
+let sortDir = 'asc';
+let searchTerm = '';
+let filterStatus = 'all';
+let editMode = false;
+let editItem = null;
+
+const pages = {
+  'request-types':  {title:'Request Types',          entity:'Request Type'},
+  'document-types': {title:'Document Types',          entity:'Document Type'},
+  'doc-rules':      {title:'Documentation Rules',     entity:'Rule'},
+  'doc-managers':   {title:'Documentation Managers',  entity:'Manager'},
+  'dashboard':      {title:'Document Status Dashboard', entity:'Requirement'},
+  'entities':       {title:'Entities',                entity:'Entity'},
+  'api':            {title:'API Integrations',        entity:'Integration'},
+};
+
+/* ═══════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════ */
+function showPage(page) {
+  currentPage = page;
+  selectedRows.clear();
+  sortCol = null;
+  searchTerm = '';
+  filterStatus = 'all';
+
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.page === page);
+  });
+  document.getElementById('page-title').textContent = pages[page].title;
+  document.getElementById('add-btn').textContent = '+ Add ' + pages[page].entity;
+  renderContent();
+}
+
+/* ═══════════════════════════════════════
+   FILTER + SORT
+═══════════════════════════════════════ */
+function getFilteredData() {
+  let rows = [...(data[currentPage] || [])];
+  if (searchTerm) {
+    const t = searchTerm.toLowerCase();
+    rows = rows.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(t)));
+  }
+  if (filterStatus && filterStatus !== 'all') {
+    rows = rows.filter(r => String(r.status) === filterStatus);
+  }
+  if (sortCol) {
+    rows.sort((a, b) => {
+      const av = String(a[sortCol] || ''), bv = String(b[sortCol] || '');
+      return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+  }
+  return rows;
+}
+
+function toggleSort(col) {
+  if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortCol = col; sortDir = 'asc'; }
+  renderContent();
+}
+
+/* ═══════════════════════════════════════
+   COLUMN DEFINITIONS
+═══════════════════════════════════════ */
+function getColumns() {
+  const map = {
+    'request-types': [
+      {key:'name',label:'Name',sortable:true},
+      {key:'description',label:'Description',sortable:false},
+      {key:'entityType',label:'Entity Type',sortable:true},
+      {key:'rules',label:'Rules',sortable:true},
+      {key:'status',label:'Status',sortable:true},
+      {key:'createdAt',label:'Created',sortable:true},
+    ],
+    'document-types': [
+      {key:'name',label:'Name',sortable:true},
+      {key:'category',label:'Category',sortable:true},
+      {key:'entityType',label:'Entity Type',sortable:true},
+      {key:'isSensitive',label:'Sensitive',sortable:true},
+      {key:'status',label:'Status',sortable:true},
+      {key:'createdAt',label:'Created',sortable:true},
+    ],
+    'doc-rules': [
+      {key:'rank',label:'Rank',sortable:true},
+      {key:'name',label:'Rule Name',sortable:true},
+      {key:'requestType',label:'Request Type',sortable:true},
+      {key:'conditions',label:'Conditions',sortable:false},
+      {key:'documents',label:'Docs Required',sortable:true},
+      {key:'status',label:'Status',sortable:true},
+    ],
+    'doc-managers': [
+      {key:'name',label:'Manager',sortable:true},
+      {key:'email',label:'Email',sortable:true},
+      {key:'docTypes',label:'Document Types',sortable:false},
+      {key:'companies',label:'Companies',sortable:false},
+      {key:'groups',label:'User Groups',sortable:false},
+      {key:'status',label:'Status',sortable:true},
+    ],
+    'entities': [
+      {key:'code',label:'Code',sortable:true},
+      {key:'name',label:'Name',sortable:true},
+      {key:'type',label:'Type',sortable:true},
+      {key:'country',label:'Country',sortable:true},
+      {key:'currency',label:'Currency',sortable:true},
+      {key:'source',label:'Source',sortable:true},
+      {key:'status',label:'Status',sortable:true},
+    ],
+  };
+  return map[currentPage] || [];
+}
+
+/* ═══════════════════════════════════════
+   CELL RENDERING
+═══════════════════════════════════════ */
+function renderCellValue(row, key) {
+  const v = row[key];
+  if (key === 'status') {
+    const m = {Active:'badge-green', Draft:'badge-amber', Inactive:'badge-gray', Connected:'badge-teal', Disconnected:'badge-red'};
+    return `<span class="badge ${m[v]||'badge-gray'}">${v}</span>`;
+  }
+  if (key === 'isSensitive') {
+    return v ? '<span class="badge badge-red">Sensitive</span>' : '<span class="badge badge-gray">Public</span>';
+  }
+  if (key === 'rank') return `<span style="font-weight:500;color:#185FA5">#${v}</span>`;
+  if (key === 'documents' || key === 'rules') return `<span class="badge badge-blue">${v}</span>`;
+  if (key === 'entityType' || key === 'type') {
+    const m = {Company:'badge-purple', Account:'badge-blue', Signer:'badge-teal', Authority:'badge-amber', Other:'badge-gray'};
+    return `<span class="badge ${m[v]||'badge-gray'}">${v}</span>`;
+  }
+  if (key === 'source') return v === 'Kyriba' ? '<span class="badge badge-purple">Kyriba</span>' : '<span class="badge badge-gray">Manual</span>';
+  if (key === 'code') return `<code>${v}</code>`;
+  if (!v || v === '—') return '<span style="color:var(--color-text-tertiary)">—</span>';
+  return String(v);
+}
+
+/* ═══════════════════════════════════════
+   MAIN RENDER
+═══════════════════════════════════════ */
+function renderContent() {
+  const c = document.getElementById('main-content');
+  if (currentPage === 'dashboard') { renderDashboard(c); return; }
+  if (currentPage === 'api')       { renderApi(c); return; }
+  renderTable(c);
+}
+
+function statsHtml() {
+  const all = data[currentPage] || [];
+  if (currentPage === 'request-types') {
+    return `<div class="stat-row">
+      <div class="stat-card"><div class="stat-label">Total</div><div class="stat-val">${all.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Active</div><div class="stat-val" style="color:#3B6D11">${all.filter(r=>r.status==='Active').length}</div></div>
+      <div class="stat-card"><div class="stat-label">Draft</div><div class="stat-val" style="color:#854F0B">${all.filter(r=>r.status==='Draft').length}</div></div>
+      <div class="stat-card"><div class="stat-label">Total Rules</div><div class="stat-val">${all.reduce((s,r)=>s+(r.rules||0),0)}</div></div>
+    </div>`;
+  }
+  if (currentPage === 'document-types') {
+    return `<div class="stat-row">
+      <div class="stat-card"><div class="stat-label">Total</div><div class="stat-val">${all.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Active</div><div class="stat-val" style="color:#3B6D11">${all.filter(r=>r.status==='Active').length}</div></div>
+      <div class="stat-card"><div class="stat-label">Sensitive</div><div class="stat-val" style="color:#A32D2D">${all.filter(r=>r.isSensitive).length}</div></div>
+      <div class="stat-card"><div class="stat-label">Entity Types</div><div class="stat-val">4</div></div>
+    </div>`;
+  }
+  if (currentPage === 'doc-rules') {
+    return `<div class="stat-row">
+      <div class="stat-card"><div class="stat-label">Total Rules</div><div class="stat-val">${all.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Active</div><div class="stat-val" style="color:#3B6D11">${all.filter(r=>r.status==='Active').length}</div></div>
+      <div class="stat-card"><div class="stat-label">Draft</div><div class="stat-val" style="color:#854F0B">${all.filter(r=>r.status==='Draft').length}</div></div>
+      <div class="stat-card"><div class="stat-label">Request Types</div><div class="stat-val">${new Set(all.map(r=>r.requestType)).size}</div></div>
+    </div>`;
+  }
+  return '';
+}
+
+function renderTable(c) {
+  const cols = getColumns();
+  const rows = getFilteredData();
+  const all  = data[currentPage] || [];
+  const sel  = selectedRows.size;
+  const allIds = rows.map(r => r.id);
+  const allChecked = allIds.length > 0 && allIds.every(id => selectedRows.has(id));
+
+  const thHtml = cols.map(col => {
+    let cls = col.sortable ? 'sortable' : '';
+    if (sortCol === col.key) cls += sortDir === 'asc' ? ' sort-asc' : ' sort-desc';
+    return `<th class="${cls}" ${col.sortable ? `onclick="toggleSort('${col.key}')"` : ''}>${col.label}</th>`;
+  }).join('');
+
+  const trHtml = rows.length ? rows.map(row => {
+    const checked = selectedRows.has(row.id);
+    const tds = cols.map(col => `<td>${renderCellValue(row, col.key)}</td>`).join('');
+    return `<tr class="${checked ? 'selected' : ''}" oncontextmenu="showCtx(event,${row.id})" ondblclick="openEditModal(${row.id})">
+      <td><input class="cb" type="checkbox" ${checked ? 'checked' : ''} onchange="toggleRow(${row.id},this)" onclick="event.stopPropagation()"></td>
+      ${tds}
+      <td>
+        <div class="actions-cell">
+          <div class="icon-btn" title="Edit" onclick="openEditModal(${row.id});event.stopPropagation()">✏</div>
+          <div class="icon-btn" title="Duplicate" onclick="duplicateRow(${row.id});event.stopPropagation()">⎘</div>
+          <div class="icon-btn delete" title="Delete" onclick="confirmDelete([${row.id}]);event.stopPropagation()">✕</div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="${cols.length + 2}" style="text-align:center;padding:40px;color:var(--color-text-secondary)">No records match your search</td></tr>`;
+
+  c.innerHTML = `
+    ${statsHtml()}
+    <div class="filter-bar">
+      <input type="text" placeholder="Search ${pages[currentPage].title.toLowerCase()}..." value="${searchTerm}" oninput="searchTerm=this.value;renderContent()">
+      <span class="filter-label">Status:</span>
+      <select onchange="filterStatus=this.value;renderContent()">
+        <option value="all">All</option>
+        <option value="Active">Active</option>
+        <option value="Draft">Draft</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <div class="batch-info">${sel > 0 ? `<strong>${sel}</strong> selected` : `<strong>${rows.length}</strong> of ${all.length} records`}</div>
+        ${sel > 0 ? `
+          <div class="btn" onclick="exportSelected()">⬇ Export Selected</div>
+          <div class="btn btn-danger" onclick="confirmDelete([...selectedRows])">🗑 Delete Selected (${sel})</div>
+          <div class="btn" onclick="selectedRows.clear();renderContent()">✕ Deselect All</div>
+        ` : `<div class="btn" onclick="selectAll(true)">Select All (${rows.length})</div>`}
+        <div style="margin-left:auto;font-size:12px;color:var(--color-text-tertiary)">Right-click any row for options</div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th style="width:40px"><input class="cb" type="checkbox" ${allChecked ? 'checked' : ''} onchange="selectAll(this.checked)"></th>
+            ${thHtml}
+            <th style="width:90px">Actions</th>
+          </tr></thead>
+          <tbody>${trHtml}</tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <div class="pager-info">Showing ${rows.length} of ${all.length} entries</div>
+        <div class="pager-btns">
+          <div class="pager-btn">‹</div>
+          <div class="pager-btn active">1</div>
+          <div class="pager-btn">›</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════
+   DASHBOARD PAGE
+═══════════════════════════════════════ */
+function renderDashboard(c) {
+  const rows = data['dashboard'];
+  const counts = {Available:0, WillExpireSoon:0, Expired:0, Missing:0};
+  rows.forEach(r => counts[r.status]++);
+  const sel = selectedRows.size;
+
+  const statusBadge = s => {
+    if (s === 'Available')     return `<span class="badge badge-green"><span class="status-dot dot-green"></span>Available</span>`;
+    if (s === 'WillExpireSoon') return `<span class="badge badge-amber"><span class="status-dot dot-amber"></span>Expiring Soon</span>`;
+    if (s === 'Expired')       return `<span class="badge badge-red"><span class="status-dot dot-red"></span>Expired</span>`;
+    return `<span class="badge badge-gray"><span class="status-dot dot-gray"></span>Missing</span>`;
+  };
+
+  c.innerHTML = `
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-label">Available</div><div class="stat-val" style="color:#3B6D11">${counts.Available}</div><div class="stat-sub">documents valid</div></div>
+      <div class="stat-card"><div class="stat-label">Expiring Soon</div><div class="stat-val" style="color:#854F0B">${counts.WillExpireSoon}</div><div class="stat-sub">within 30 days</div></div>
+      <div class="stat-card"><div class="stat-label">Expired</div><div class="stat-val" style="color:#A32D2D">${counts.Expired}</div><div class="stat-sub">need renewal</div></div>
+      <div class="stat-card"><div class="stat-label">Missing</div><div class="stat-val" style="color:#888780">${counts.Missing}</div><div class="stat-sub">not uploaded</div></div>
+    </div>
+    <div class="filter-bar">
+      <input type="text" placeholder="Search by entity, document type...">
+      <span class="filter-label">Status:</span>
+      <select><option>All</option><option>Available</option><option>Expiring Soon</option><option>Expired</option><option>Missing</option></select>
+      <span class="filter-label">Request Type:</span>
+      <select><option>All</option><option>Account Opening</option><option>KYC Renewal</option></select>
+    </div>
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <div class="batch-info">${sel > 0 ? `<strong>${sel}</strong> selected` : `<strong>${rows.length}</strong> requirements`}</div>
+        ${sel > 0 ? `<div class="btn" onclick="exportSelected()">⬇ Export Selected</div>
+          <div class="btn" onclick="showToast('📧','Notifications sent')">📧 Notify Selected</div>
+          <div class="btn" onclick="selectedRows.clear();renderContent()">✕ Deselect</div>` : ''}
+        <div style="margin-left:auto"><div class="btn" onclick="showToast('📧','Notifications sent to all pending managers')">📧 Notify All Pending</div></div>
+      </div>
+      <div class="table-scroll"><table>
+        <thead><tr>
+          <th style="width:40px"><input class="cb" type="checkbox"></th>
+          <th>Entity Type</th><th>Code</th><th>Entity Name</th><th>Request Type</th>
+          <th>Document Type</th><th>Status</th><th>Mandatory</th><th>Manager</th>
+          <th>Expiration</th><th>Actions</th>
+        </tr></thead>
+        <tbody>${rows.map(r => `<tr oncontextmenu="showCtx(event,${r.id})">
+          <td><input class="cb" type="checkbox"></td>
+          <td><span class="badge ${r.entityType==='Account'?'badge-blue':r.entityType==='Signer'?'badge-teal':'badge-purple'}">${r.entityType}</span></td>
+          <td><code>${r.entityCode}</code></td>
+          <td style="font-weight:500">${r.entityName}</td>
+          <td>${r.requestType}</td>
+          <td>${r.docType}</td>
+          <td>${statusBadge(r.status)}</td>
+          <td>${r.mandatory ? '<span class="badge badge-red">Mandatory</span>' : '<span class="badge badge-gray">Optional</span>'}</td>
+          <td style="font-size:12px;color:var(--color-text-secondary)">${r.manager}</td>
+          <td style="font-size:12px;${r.status==='Expired'?'color:#A32D2D':r.status==='WillExpireSoon'?'color:#854F0B':'color:var(--color-text-secondary)'}">${r.expDate}</td>
+          <td>
+            ${r.status === 'Missing'
+              ? `<div class="btn btn-primary btn-sm" onclick="showToast('📎','Upload dialog opened...')">Upload</div>`
+              : `<div class="btn btn-sm" onclick="showToast('👁','Opening preview...')">View</div>`}
+          </td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+      <div class="pager">
+        <div class="pager-info">Showing ${rows.length} of ${rows.length} requirements</div>
+        <div class="pager-btns"><div class="pager-btn">‹</div><div class="pager-btn active">1</div><div class="pager-btn">›</div></div>
+      </div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════
+   API PAGE
+═══════════════════════════════════════ */
+function renderApi(c) {
+  const rows = data['api'];
+  c.innerHTML = `
+    <div class="stat-row" style="grid-template-columns:1fr 1fr">
+      <div class="stat-card"><div class="stat-label">Configured Integrations</div><div class="stat-val">${rows.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Active Connections</div><div class="stat-val" style="color:#3B6D11">${rows.filter(r=>r.status==='Connected').length}</div></div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <div class="batch-info"><strong>${rows.length}</strong> integrations</div>
+        <div style="margin-left:auto"><div class="btn btn-primary" onclick="showToast('🔌','Opening new integration setup...')">+ Add Integration</div></div>
+      </div>
+      <div class="table-scroll"><table>
+        <thead><tr>
+          <th>Name</th><th>API Base URL</th><th>Auth Type</th><th>Scope</th><th>Status</th><th>Last Sync</th><th>Actions</th>
+        </tr></thead>
+        <tbody>${rows.map(r => `<tr oncontextmenu="showCtx(event,${r.id})">
+          <td style="font-weight:500">${r.name}</td>
+          <td><code>${r.baseUrl}</code></td>
+          <td><span class="badge badge-purple">${r.authType}</span></td>
+          <td><code>${r.scope}</code></td>
+          <td><span class="badge ${r.status==='Connected'?'badge-teal':'badge-red'}">${r.status}</span></td>
+          <td style="font-size:12px;color:var(--color-text-secondary)">${r.lastSync}</td>
+          <td>
+            <div style="display:flex;gap:4px">
+              <div class="btn btn-sm" onclick="showToast('🔌','Testing connection...')">Test</div>
+              <div class="btn btn-sm" onclick="showToast('🔄','Sync started...')">Sync</div>
+            </div>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════
+   SELECTION
+═══════════════════════════════════════ */
+function toggleRow(id, cb) {
+  if (cb.checked) selectedRows.add(id); else selectedRows.delete(id);
+  renderContent();
+}
+
+function selectAll(checked) {
+  const rows = getFilteredData();
+  if (checked === true || checked === undefined) rows.forEach(r => selectedRows.add(r.id));
+  else selectedRows.clear();
+  renderContent();
+}
+
+/* ═══════════════════════════════════════
+   CONTEXT MENU
+═══════════════════════════════════════ */
+function showCtx(e, rowId) {
+  e.preventDefault();
+  ctxRowId = rowId;
+  const m = document.getElementById('ctx-menu');
+  m.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
+  m.style.top  = Math.min(e.clientY, window.innerHeight - 220) + 'px';
+  m.classList.add('visible');
+}
+
+function ctxAction(action) {
+  document.getElementById('ctx-menu').classList.remove('visible');
+  if (action === 'edit')       openEditModal(ctxRowId);
+  else if (action === 'delete')     confirmDelete([ctxRowId]);
+  else if (action === 'duplicate')  duplicateRow(ctxRowId);
+  else if (action === 'view')       showToast('👁', 'Opening detail view...');
+  else if (action === 'export-row') exportRow(ctxRowId);
+}
+
+/* ═══════════════════════════════════════
+   EXPORT
+═══════════════════════════════════════ */
+function downloadCSV(rows, name) {
+  if (!rows.length) { showToast('⚠', 'No data to export'); return; }
+  const keys = Object.keys(rows[0]);
+  const csv  = [keys.join(','), ...rows.map(r => keys.map(k => `"${String(r[k]).replace(/"/g, '""')}"`).join(','))].join('\n');
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = `${name}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+
+function exportData()     { const rows = getFilteredData(); downloadCSV(rows, currentPage); showToast('⬇', `Exported ${rows.length} records`); }
+function exportSelected() { const rows = (data[currentPage]||[]).filter(r => selectedRows.has(r.id)); downloadCSV(rows, `${currentPage}_selected`); showToast('⬇', `Exported ${rows.length} records`); }
+function exportRow(id)    { const row = (data[currentPage]||[]).find(r => r.id === id); if (row) { downloadCSV([row], `${currentPage}_row_${id}`); showToast('⬇', 'Row exported'); } }
+
+/* ═══════════════════════════════════════
+   DUPLICATE
+═══════════════════════════════════════ */
+function duplicateRow(id) {
+  const arr = data[currentPage];
+  const row = arr.find(r => r.id === id);
+  if (!row) return;
+  const newRow = {...row, id: Math.max(...arr.map(r => r.id)) + 1, name: (row.name||'') + ' (copy)', status:'Draft'};
+  arr.push(newRow);
+  renderContent();
+  showToast('⎘', 'Record duplicated as Draft');
+}
+
+/* ═══════════════════════════════════════
+   MODALS — ADD / EDIT
+═══════════════════════════════════════ */
+function openAddModal()    { editMode = false; editItem = null; renderModal(pages[currentPage].entity, null); }
+function openEditModal(id) {
+  const row = (data[currentPage]||[]).find(r => r.id === id);
+  if (!row) return;
+  editMode = true; editItem = row;
+  renderModal(pages[currentPage].entity, row);
+}
+
+function renderModal(entity, row) {
+  const isEdit = !!row;
+  let fields = '';
+
+  if (currentPage === 'request-types') {
+    fields = `
+      <div class="form-row"><label class="form-label">Name *</label><input class="form-input" id="f-name" value="${row?row.name:''}" placeholder="e.g. Account Opening"></div>
+      <div class="form-row"><label class="form-label">Description</label><textarea class="form-input" id="f-desc" placeholder="Brief description">${row?row.description:''}</textarea></div>
+      <div class="form-row"><label class="form-label">Entity Type *</label>
+        <select class="form-input" id="f-entity">${['Account','Company','Signer','Authority','Other'].map(e=>`<option ${row&&row.entityType===e?'selected':''}>${e}</option>`).join('')}</select></div>
+      <div class="form-row"><label class="form-label">Status</label>
+        <select class="form-input" id="f-status">${['Active','Draft'].map(s=>`<option ${row&&row.status===s?'selected':''}>${s}</option>`).join('')}</select></div>`;
+  } else if (currentPage === 'document-types') {
+    fields = `
+      <div class="form-row"><label class="form-label">Name *</label><input class="form-input" id="f-name" value="${row?row.name:''}" placeholder="e.g. Certificate of Incorporation"></div>
+      <div class="form-row"><label class="form-label">Description</label><textarea class="form-input" id="f-desc">${row?row.description:''}</textarea></div>
+      <div class="form-row"><label class="form-label">Category</label>
+        <select class="form-input" id="f-cat">${['Certificate of Incorporation','Balance Sheet','Personal ID','Board Resolution','Account Agreement','MoA / AoA','PoA','Other'].map(c=>`<option ${row&&row.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+      <div class="form-row"><label class="form-label">Entity Type *</label>
+        <select class="form-input" id="f-entity">${['Company','Account','Signer','Authority','Other'].map(e=>`<option ${row&&row.entityType===e?'selected':''}>${e}</option>`).join('')}</select></div>
+      <div class="form-row"><div class="toggle-row">
+        <label class="toggle"><input type="checkbox" id="f-sensitive" ${row&&row.isSensitive?'checked':''}><span class="toggle-slider"></span></label>
+        <span class="toggle-label">Sensitive document (hidden from regular users)</span>
+      </div></div>
+      <div class="form-row"><label class="form-label">Status</label>
+        <select class="form-input" id="f-status">${['Active','Draft'].map(s=>`<option ${row&&row.status===s?'selected':''}>${s}</option>`).join('')}</select></div>`;
+  } else if (currentPage === 'doc-rules') {
+    fields = `
+      <div class="form-row"><label class="form-label">Rule Name *</label><input class="form-input" id="f-name" value="${row?row.name:''}" placeholder="e.g. EU Account Opening - Standard"></div>
+      <div class="form-row"><label class="form-label">Request Type *</label>
+        <select class="form-input" id="f-req">${(data['request-types']||[]).map(rt=>`<option ${row&&row.requestType===rt.name?'selected':''}>${rt.name}</option>`).join('')}</select></div>
+      <div class="form-row"><label class="form-label">Rank (priority order)</label><input class="form-input" id="f-rank" type="number" min="1" value="${row?row.rank:1}"></div>
+      <div class="form-row"><label class="form-label">Conditions</label><textarea class="form-input" id="f-cond" placeholder="e.g. Bank is in EU, Account Type = Checking">${row?row.conditions:''}</textarea></div>
+      <div class="form-row"><label class="form-label">Status</label>
+        <select class="form-input" id="f-status">${['Active','Draft'].map(s=>`<option ${row&&row.status===s?'selected':''}>${s}</option>`).join('')}</select></div>`;
+  } else if (currentPage === 'doc-managers') {
+    fields = `
+      <div class="form-row"><label class="form-label">Manager Name *</label><input class="form-input" id="f-name" value="${row?row.name:''}" placeholder="Full name"></div>
+      <div class="form-row"><label class="form-label">Email</label><input class="form-input" id="f-email" type="email" value="${row?row.email:''}" placeholder="email@company.com"></div>
+      <div class="form-row"><label class="form-label">Document Types</label><input class="form-input" id="f-doctypes" value="${row?row.docTypes:''}" placeholder="e.g. Passport, Utility Bill"></div>
+      <div class="form-row"><label class="form-label">Companies</label><input class="form-input" id="f-companies" value="${row?row.companies:''}" placeholder="e.g. All or EU Entities"></div>
+      <div class="form-row"><label class="form-label">User Groups</label><input class="form-input" id="f-groups" value="${row?row.groups:''}" placeholder="e.g. EMEA Treasury"></div>
+      <div class="form-row"><label class="form-label">Status</label>
+        <select class="form-input" id="f-status">${['Active','Inactive'].map(s=>`<option ${row&&row.status===s?'selected':''}>${s}</option>`).join('')}</select></div>`;
+  } else {
+    fields = `
+      <div class="form-row"><label class="form-label">Name *</label><input class="form-input" id="f-name" value="${row?row.name:''}" placeholder="Name"></div>
+      <div class="form-row"><label class="form-label">Status</label>
+        <select class="form-input" id="f-status">${['Active','Draft','Inactive'].map(s=>`<option ${row&&row.status===s?'selected':''}>${s}</option>`).join('')}</select></div>`;
+  }
+
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-title">${isEdit ? 'Edit' : 'Add'} ${entity}</div>
+    <div class="modal-sub">${isEdit ? 'Update the record details below.' : `Create a new ${entity.toLowerCase()} record.`}</div>
+    ${fields}
+    <div class="modal-footer">
+      <div class="btn" onclick="closeModal('modal-overlay')">Cancel</div>
+      <div class="btn btn-primary" onclick="saveModal()">Save ${entity}</div>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('visible');
+}
+
+function saveModal() {
+  const nameEl = document.getElementById('f-name');
+  if (nameEl && !nameEl.value.trim()) { nameEl.style.borderColor = '#E24B4A'; return; }
+
+  const arr = data[currentPage];
+  if (editMode && editItem) {
+    const idx = arr.findIndex(r => r.id === editItem.id);
+    if (idx >= 0) {
+      if (nameEl) arr[idx].name = nameEl.value.trim();
+      const pick = id => { const el = document.getElementById(id); return el ? el.value : null; };
+      const check = id => { const el = document.getElementById(id); return el ? el.checked : null; };
+      if (pick('f-status'))    arr[idx].status     = pick('f-status');
+      if (pick('f-entity'))    arr[idx].entityType = pick('f-entity');
+      if (pick('f-cat'))       arr[idx].category   = pick('f-cat');
+      if (check('f-sensitive') !== null) arr[idx].isSensitive = check('f-sensitive');
+      if (pick('f-rank'))      arr[idx].rank        = parseInt(pick('f-rank')) || 1;
+      if (pick('f-req'))       arr[idx].requestType = pick('f-req');
+      if (pick('f-email'))     arr[idx].email       = pick('f-email');
+      if (pick('f-doctypes'))  arr[idx].docTypes    = pick('f-doctypes');
+      if (pick('f-companies')) arr[idx].companies   = pick('f-companies');
+      if (pick('f-groups'))    arr[idx].groups      = pick('f-groups');
+    }
+    showToast('✓', `${pages[currentPage].entity} updated`);
+  } else {
+    const newId  = Math.max(...arr.map(r => r.id), 0) + 1;
+    const newRow = {id: newId, name: nameEl ? nameEl.value.trim() : '', status: 'Active', createdAt: new Date().toISOString().slice(0, 10)};
+    arr.push(newRow);
+    showToast('✓', `${pages[currentPage].entity} created`);
+  }
+  closeModal('modal-overlay');
+  renderContent();
+}
+
+/* ═══════════════════════════════════════
+   DELETE
+═══════════════════════════════════════ */
+function confirmDelete(ids) {
+  if (!ids || ids.length === 0) return;
+  const entity = pages[currentPage].entity;
+  document.getElementById('confirm-content').innerHTML = `
+    <div class="modal-title" style="color:#A32D2D">Delete ${ids.length > 1 ? ids.length + ' records' : entity}</div>
+    <div class="modal-sub">This action cannot be undone. ${ids.length > 1 ? `All ${ids.length} selected records` : 'This record'} will be permanently deleted.</div>
+    ${ids.length > 1 ? `<div style="background:#FCEBEB;border-radius:6px;padding:10px 12px;font-size:13px;color:#A32D2D;margin-bottom:4px">⚠ You are about to delete <strong>${ids.length}</strong> records at once.</div>` : ''}
+    <div class="modal-footer">
+      <div class="btn" onclick="closeModal('confirm-overlay')">Cancel</div>
+      <div class="btn btn-danger" onclick="executeDelete(${JSON.stringify(ids)})">Delete ${ids.length > 1 ? ids.length + ' Records' : entity}</div>
+    </div>`;
+  document.getElementById('confirm-overlay').classList.add('visible');
+}
+
+function executeDelete(ids) {
+  const idSet = new Set(ids);
+  data[currentPage] = (data[currentPage] || []).filter(r => !idSet.has(r.id));
+  ids.forEach(id => selectedRows.delete(id));
+  closeModal('confirm-overlay');
+  showToast('🗑', `Deleted ${ids.length} record${ids.length > 1 ? 's' : ''}`);
+  renderContent();
+}
+
+/* ═══════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════ */
+function closeModal(id) { document.getElementById(id).classList.remove('visible'); }
+
+function handleOverlayClick(e, id) {
+  if (e.target === document.getElementById(id)) closeModal(id);
+}
+
+function showToast(icon, msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-icon').textContent = icon;
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+/* ═══════════════════════════════════════
+   GLOBAL EVENTS
+═══════════════════════════════════════ */
+document.addEventListener('click', e => {
+  if (!e.target.closest('#ctx-menu')) document.getElementById('ctx-menu').classList.remove('visible');
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeModal('modal-overlay');
+    closeModal('confirm-overlay');
+    document.getElementById('ctx-menu').classList.remove('visible');
+  }
+});
+
+/* ── Boot ── */
+showPage('request-types');
+</script>
+</body>
+</html>
