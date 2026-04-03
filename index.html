@@ -1179,8 +1179,10 @@
 
       const isLikelyServiceHeaderLine = (line) => {
         const norm = normalizeKey(line || '');
-        return norm.includes('service_code') &&
-          (norm.includes('bank_code') || norm.includes('actual_price') || norm.includes('actual_charge'));
+        const hasService = norm.includes('service_code') || (norm.includes('service') && norm.includes('code'));
+        const hasBank = norm.includes('bank_code') || (norm.includes('bank') && norm.includes('code'));
+        const hasAmount = norm.includes('actual_price') || norm.includes('actual_charge') || norm.includes('actual');
+        return hasService && (hasBank || hasAmount);
       };
 
       const parseHeaderContext = (lineIndex) => {
@@ -1280,16 +1282,31 @@
       }
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: 'array', raw: false });
-      const firstSheetName = workbook.SheetNames?.[0];
-      if (!firstSheetName) throw new Error('Excel file has no worksheet.');
-      const worksheet = workbook.Sheets[firstSheetName];
-      const csvText = XLSX.utils.sheet_to_csv(worksheet, {
-        FS: ',',
-        RS: '\n',
-        blankrows: false,
-      });
-      if (!String(csvText || '').trim()) throw new Error('Excel worksheet is empty.');
-      return parseCSV(csvText);
+      const sheetNames = workbook.SheetNames || [];
+      if (!sheetNames.length) throw new Error('Excel file has no worksheet.');
+
+      const mergedRecords = [];
+      for (const sheetName of sheetNames) {
+        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) continue;
+        const csvText = XLSX.utils.sheet_to_csv(worksheet, {
+          FS: ',',
+          RS: '\n',
+          blankrows: false,
+        });
+        if (!String(csvText || '').trim()) continue;
+        try {
+          const rows = parseCSV(csvText);
+          if (rows.length) mergedRecords.push(...rows);
+        } catch {
+          // Ignore non-data sheets; continue scanning all headers/sheets.
+        }
+      }
+
+      if (!mergedRecords.length) {
+        throw new Error('No mappable bank-fee rows found across all Excel sheets/headers.');
+      }
+      return mergedRecords;
     }
 
     function aggregateRecords(records) {
