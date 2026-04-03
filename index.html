@@ -677,21 +677,21 @@
           <div class="row two">
             <div>
               <label for="banksAuthUrl">Token / Auth URL</label>
-              <input id="banksAuthUrl" type="text" placeholder="https://.../oauth/token" />
+              <input id="banksAuthUrl" type="text" placeholder="https://.../oauth/token" autocomplete="off" />
             </div>
             <div>
               <label for="banksBaseUrl">API Base URL</label>
-              <input id="banksBaseUrl" type="text" placeholder="https://.../api" />
+              <input id="banksBaseUrl" type="text" placeholder="https://.../api" autocomplete="off" />
             </div>
           </div>
           <div class="row two">
             <div>
               <label for="banksClientId">Client ID</label>
-              <input id="banksClientId" type="text" placeholder="Client ID" />
+              <input id="banksClientId" type="text" placeholder="Client ID" autocomplete="off" />
             </div>
             <div>
               <label for="banksClientSecret">Client Secret</label>
-              <input id="banksClientSecret" type="password" placeholder="Client Secret" />
+              <input id="banksClientSecret" type="password" placeholder="Client Secret" autocomplete="new-password" />
             </div>
           </div>
           <div>
@@ -1790,6 +1790,12 @@
       resetPtPreviewState();
     }
 
+    function clearApiSessionCredentials() {
+      el.banksClientId.value = '';
+      el.banksClientSecret.value = '';
+      el.banksAccessToken.value = '';
+    }
+
     function renderDashboard(data) {
       state.records = data.records;
       state.aggregates = data;
@@ -2505,6 +2511,7 @@
     el.changeSourceLink.addEventListener('click', (e) => {
       e.preventDefault();
       backToImport();
+      clearApiSessionCredentials();
     });
 
     el.copySummaryBtn.addEventListener('click', async () => {
@@ -2528,16 +2535,20 @@
       if (state.aggregates) drawServiceBar(state.aggregates);
     });
 
-    el.banksAuthUrl.value = 'https://auth.diamond-preprod.treasury-factory.com/oauth/token';
-    el.banksBaseUrl.value = 'https://api.diamond-preprod.treasury-factory.com/api';
-    el.banksScope.value = 'bank-scope';
+    // Option 2 mode: do not persist per-user credentials in frontend.
+    el.banksAuthUrl.value = '';
+    el.banksBaseUrl.value = '';
+    el.banksScope.value = '';
     el.banksProxyUrl.value = 'https://bank-fee-analysis-dashboard.onrender.com/api/v1/kyriba/banks';
+    clearApiSessionCredentials();
     el.ptPageInfo.textContent = 'Page 0 / 0';
     el.ptPrevPageBtn.disabled = true;
     el.ptNextPageBtn.disabled = true;
     syncPtScrollAssistWidth();
     syncScopeModeUI();
     addManualRow();
+
+    window.addEventListener('beforeunload', clearApiSessionCredentials);
   </script>
 </body>
 </html>
