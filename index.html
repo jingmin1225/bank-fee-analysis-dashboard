@@ -267,6 +267,83 @@
       background: var(--danger);
     }
 
+    .api-guide-bar {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .guide-trigger {
+      border: 1px solid #cfd6dd;
+      border-radius: 999px;
+      background: #fff;
+      color: #24323d;
+      padding: 7px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .guide-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(16, 26, 37, 0.52);
+      display: grid;
+      place-items: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+
+    .guide-modal {
+      width: min(560px, 100%);
+      border-radius: 14px;
+      background: #fff;
+      border: 1px solid #d9e0e6;
+      box-shadow: 0 20px 50px rgba(10, 18, 28, 0.24);
+      overflow: hidden;
+    }
+
+    .guide-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid #e8edf2;
+    }
+
+    .guide-head h4 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .guide-close {
+      border: none;
+      background: transparent;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      color: #495867;
+    }
+
+    .guide-body {
+      padding: 14px 16px;
+      color: #2c3b48;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .guide-foot {
+      border-top: 1px solid #e8edf2;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .guide-step {
+      font-size: 0.82rem;
+      color: #6a7783;
+    }
+
     .btn:focus-visible,
     .method-btn:focus-visible,
     .back-link:focus-visible {
@@ -674,6 +751,9 @@
         </div>
 
         <div id="apiPanel" class="panel hidden">
+          <div class="api-guide-bar">
+            <button id="apiGuideOpenBtn" class="guide-trigger" type="button">Guide</button>
+          </div>
           <div class="row two">
             <div>
               <label for="banksAuthUrl">Token / Auth URL</label>
@@ -752,6 +832,23 @@
       </div>
     </div>
   </section>
+
+  <div id="apiGuideOverlay" class="guide-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="apiGuideTitle">
+    <div class="guide-modal">
+      <div class="guide-head">
+        <h4 id="apiGuideTitle">API Method Guide</h4>
+        <button id="apiGuideCloseBtn" class="guide-close" type="button" aria-label="Close guide">&times;</button>
+      </div>
+      <div id="apiGuideBody" class="guide-body"></div>
+      <div class="guide-foot">
+        <span id="apiGuideStep" class="guide-step"></span>
+        <div class="actions">
+          <button id="apiGuideSkipBtn" class="btn secondary" type="button">Skip</button>
+          <button id="apiGuideContinueBtn" class="btn primary" type="button">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <section id="dashboardScreen" class="container dashboard hidden">
     <header>
@@ -833,6 +930,10 @@
       processTaskId: '',
       processTaskCode: '',
       dashboardCurrency: 'USD',
+      apiGuide: {
+        open: false,
+        step: 0,
+      },
       charts: {
         doughnut: null,
         bankBar: null,
@@ -869,6 +970,14 @@
       loadTaskIdBtn: document.getElementById('loadTaskIdBtn'),
       loadPtResultBtn: document.getElementById('loadPtResultBtn'),
       confirmPtLoadBtn: document.getElementById('confirmPtLoadBtn'),
+      apiGuideOpenBtn: document.getElementById('apiGuideOpenBtn'),
+      apiGuideOverlay: document.getElementById('apiGuideOverlay'),
+      apiGuideTitle: document.getElementById('apiGuideTitle'),
+      apiGuideBody: document.getElementById('apiGuideBody'),
+      apiGuideStep: document.getElementById('apiGuideStep'),
+      apiGuideContinueBtn: document.getElementById('apiGuideContinueBtn'),
+      apiGuideSkipBtn: document.getElementById('apiGuideSkipBtn'),
+      apiGuideCloseBtn: document.getElementById('apiGuideCloseBtn'),
       banksStatus: document.getElementById('banksStatus'),
       ptPreviewWrap: document.getElementById('ptPreviewWrap'),
       ptPreviewScrollTop: document.getElementById('ptPreviewScrollTop'),
@@ -1290,7 +1399,44 @@
       el.previewTable.innerHTML = thead + tbody;
     }
 
+    const apiGuideSteps = [
+      {
+        title: 'API Connection Guide',
+        body: 'Use this option to pull Bank Fee data via your Kyriba APIs. Credentials are session-only and should be entered by each user.',
+      },
+      {
+        title: 'Kyriba Setup Required',
+        body: 'Before using this page, ensure Kyriba has Bank Fee Statements integrated and a Bank Fee Variance report configured.',
+      },
+      {
+        title: 'Report Configuration',
+        body: 'Required report settings: Result format = CSV, Entity selection = By Bank, Option = Separate by ledger for each entity, Conversion currency = defined currency (for example EUR).',
+      },
+    ];
+
+    function renderApiGuide() {
+      const step = Math.max(0, Math.min(state.apiGuide.step, apiGuideSteps.length - 1));
+      const data = apiGuideSteps[step];
+      el.apiGuideTitle.textContent = data.title;
+      el.apiGuideBody.textContent = data.body;
+      el.apiGuideStep.textContent = `Step ${step + 1} / ${apiGuideSteps.length}`;
+      el.apiGuideContinueBtn.textContent = step === apiGuideSteps.length - 1 ? 'Done' : 'Continue';
+    }
+
+    function openApiGuide(step = 0) {
+      state.apiGuide.open = true;
+      state.apiGuide.step = step;
+      renderApiGuide();
+      el.apiGuideOverlay.classList.remove('hidden');
+    }
+
+    function closeApiGuide() {
+      state.apiGuide.open = false;
+      el.apiGuideOverlay.classList.add('hidden');
+    }
+
     function setMethod(method) {
+      const previous = state.currentMethod;
       state.currentMethod = method;
       [...el.methodTabs.querySelectorAll('.method-btn')].forEach(btn => {
         btn.classList.toggle('active', btn.dataset.method === method);
@@ -1298,6 +1444,8 @@
       el.filePanel.classList.toggle('hidden', method !== 'file');
       el.apiPanel.classList.toggle('hidden', method !== 'api');
       el.manualPanel.classList.toggle('hidden', method !== 'manual');
+      if (method !== 'api') closeApiGuide();
+      if (method === 'api' && previous !== 'api') openApiGuide(0);
     }
 
     function showStatus(node, message, kind = '') {
@@ -2135,6 +2283,23 @@
       const btn = e.target.closest('.method-btn');
       if (!btn) return;
       setMethod(btn.dataset.method);
+    });
+
+    el.apiGuideOpenBtn.addEventListener('click', () => {
+      openApiGuide(0);
+    });
+    el.apiGuideContinueBtn.addEventListener('click', () => {
+      if (state.apiGuide.step >= apiGuideSteps.length - 1) {
+        closeApiGuide();
+        return;
+      }
+      state.apiGuide.step += 1;
+      renderApiGuide();
+    });
+    el.apiGuideSkipBtn.addEventListener('click', closeApiGuide);
+    el.apiGuideCloseBtn.addEventListener('click', closeApiGuide);
+    el.apiGuideOverlay.addEventListener('click', (e) => {
+      if (e.target === el.apiGuideOverlay) closeApiGuide();
     });
 
     el.fileInput.addEventListener('change', async (e) => {
