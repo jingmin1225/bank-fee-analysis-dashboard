@@ -1,0 +1,2543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bank Fee Analysis Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #eeeff0;
+      --surface: #ffffff;
+      --surface-soft: #f7f8f9;
+      --text: #27323d;
+      --text-soft: #5f6770;
+      --line: #d8dde2;
+      --navy: #152331;
+      --navy-2: #1b2d3f;
+      --lime: #d8ef4a;
+      --danger: #bf4150;
+      --success: #227a56;
+      --shadow-md: 0 12px 28px rgba(15, 23, 32, 0.1);
+      --radius: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Manrope", "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .container {
+      width: min(1240px, 94vw);
+      margin: 0 auto;
+      padding: 26px 0 42px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .import-wrap {
+      min-height: 100vh;
+      padding: 20px;
+      display: grid;
+      place-items: center;
+    }
+
+    .import-card {
+      width: min(1220px, 100%);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+      background: var(--surface);
+      animation: rise 0.35s ease both;
+    }
+
+    .import-head {
+      position: relative;
+      min-height: 320px;
+      padding: 72px 30px 28px;
+      color: #fff;
+      background: linear-gradient(114deg, #172534 0%, #13212f 100%);
+    }
+
+    .import-head::before {
+      content: "Kyriba        Liquidity Performance        Products        Solutions        Resources        Partners        Company";
+      position: absolute;
+      top: 14px;
+      left: 30px;
+      right: 30px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      letter-spacing: 0.008em;
+      opacity: 0.84;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .import-head h1 {
+      margin: 0;
+      max-width: 52%;
+      font-family: "Space Grotesk", "Manrope", sans-serif;
+      font-size: clamp(1.8rem, 3.8vw, 3.5rem);
+      line-height: 1.04;
+      letter-spacing: -0.017em;
+      font-weight: 700;
+    }
+
+    .import-head p {
+      margin: 14px 0 0;
+      max-width: 50%;
+      font-size: 0.98rem;
+      line-height: 1.38;
+      opacity: 0.92;
+    }
+
+    .hero-media {
+      position: absolute;
+      right: 30px;
+      top: 64px;
+      width: 35%;
+      min-width: 230px;
+      height: 230px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      overflow: hidden;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .hero-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: saturate(0.9) contrast(1.02);
+    }
+
+
+    .import-body {
+      padding: 22px;
+      display: grid;
+      gap: 16px;
+      background: linear-gradient(180deg, #fbfcfd 0%, #f3f5f7 100%);
+    }
+
+    .method-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .method-btn {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: #2a3640;
+      padding: 11px 12px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .method-btn:hover {
+      border-color: #c8ced5;
+      transform: translateY(-1px);
+    }
+
+    .method-btn.active {
+      background: var(--lime);
+      border-color: transparent;
+      color: #212c34;
+      box-shadow: 0 8px 18px rgba(128, 146, 20, 0.22);
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface-soft);
+      padding: 15px;
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .row,
+    .manual-row {
+      display: grid;
+      gap: 10px;
+    }
+
+    .row.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .row.two > div {
+      min-width: 0;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-soft);
+      letter-spacing: 0.01em;
+    }
+
+    input,
+    select,
+    button,
+    textarea {
+      font: inherit;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      border: 1px solid #cfd6dd;
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px 11px;
+      color: var(--text);
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #81909d;
+      box-shadow: 0 0 0 3px rgba(36, 50, 61, 0.12);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn.primary {
+      color: #222d36;
+      background: var(--lime);
+    }
+
+    .btn.secondary {
+      color: #2b3742;
+      background: #e3e7eb;
+      border: 1px solid #c9d1d8;
+    }
+
+    .btn.danger {
+      color: #fff;
+      background: var(--danger);
+    }
+
+    .btn:focus-visible,
+    .method-btn:focus-visible,
+    .back-link:focus-visible {
+      outline: 3px solid rgba(40, 56, 71, 0.25);
+      outline-offset: 2px;
+    }
+
+    .small-note {
+      color: var(--text-soft);
+      font-size: 0.84rem;
+    }
+
+    .preview-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    #ptPreviewWrap .preview-wrap {
+      display: block;
+      max-width: 100%;
+      min-width: 0;
+      width: 100%;
+      overflow-x: scroll;
+      overflow-y: auto;
+      max-height: 420px;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+      scrollbar-gutter: stable both-edges;
+    }
+
+    #ptPreviewTable {
+      display: table;
+      width: max-content;
+      min-width: 2400px;
+    }
+
+    #ptPreviewWrap {
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    #ptPreviewWrap .preview-wrap th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #eef2f5;
+    }
+
+    .scroll-assist {
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      height: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f7f8fa;
+      margin-bottom: 8px;
+      scrollbar-gutter: stable both-edges;
+    }
+
+    .scroll-assist-inner {
+      height: 1px;
+      min-width: 100%;
+    }
+
+    .preview-pagination {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .preview-pagination .page-info {
+      font-size: 0.85rem;
+      color: var(--text-soft);
+      font-weight: 600;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid #ebeff3;
+      text-align: left;
+      padding: 9px 10px;
+      font-size: 0.83rem;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #eef2f5;
+      font-size: 0.75rem;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .status {
+      font-size: 0.86rem;
+      font-weight: 700;
+      min-height: 18px;
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .status.ok {
+      color: var(--success);
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 3px solid #d6dce2;
+      border-top-color: #2c3d4f;
+      animation: spin 0.9s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    .manual-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .manual-row {
+      border: 1px solid #d2d9e0;
+      border-radius: 10px;
+      background: #fff;
+      padding: 10px;
+      grid-template-columns: repeat(8, minmax(0, 1fr)) auto;
+      align-items: end;
+    }
+
+    .dashboard header {
+      position: relative;
+      margin-bottom: 16px;
+      padding: 74px 24px 20px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 10px;
+      color: #fff;
+      background: linear-gradient(114deg, #172534 0%, #13212f 100%);
+      overflow: hidden;
+    }
+
+    .dashboard header::before {
+      content: "Kyriba        Liquidity Performance        Products        Solutions        Resources        Partners        Company";
+      position: absolute;
+      top: 14px;
+      left: 22px;
+      right: 22px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      opacity: 0.84;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dashboard h2 {
+      margin: 0;
+      font-family: "Space Grotesk", "Manrope", sans-serif;
+      font-size: clamp(2rem, 3.4vw, 3.4rem);
+      line-height: 1.04;
+      letter-spacing: -0.014em;
+      color: #f4f8fc;
+    }
+
+    .dashboard .sub {
+      margin: 12px 0 0;
+      color: rgba(239, 246, 252, 0.9);
+      font-size: 0.98rem;
+      max-width: 64ch;
+    }
+
+    .back-link {
+      color: #202b34;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.9rem;
+      background: var(--lime);
+      padding: 8px 14px;
+      border-radius: 999px;
+      transition: transform 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .back-link:hover {
+      transform: translateY(-1px);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+      animation: rise 0.35s ease both;
+    }
+
+    .kpi .label {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .kpi .value {
+      font-size: clamp(1.25rem, 2.3vw, 1.7rem);
+      font-weight: 800;
+      color: #1f2b35;
+      letter-spacing: -0.01em;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+      animation: rise 0.4s ease both;
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 1.02rem;
+      font-weight: 800;
+      color: #24303a;
+    }
+
+    .summary-box {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      font-size: 0.92rem;
+      color: #25313c;
+      background: #f5f7f9;
+      border: 1px solid #dde3e8;
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 340px;
+      overflow: auto;
+    }
+
+    .chart-grid {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .filter-row .field {
+      min-width: 200px;
+      flex: 1;
+    }
+
+    .chart-wrap {
+      position: relative;
+      min-height: 330px;
+    }
+
+    .chart-wrap.short {
+      min-height: 290px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .manual-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .import-head h1,
+      .import-head p {
+        max-width: 100%;
+      }
+
+      .hero-media {
+        position: relative;
+        display: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .method-tabs {
+        grid-template-columns: 1fr;
+      }
+
+      .row.two {
+        grid-template-columns: 1fr;
+      }
+
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .dashboard header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 64px 16px 16px;
+      }
+
+      .dashboard h2 {
+        font-size: clamp(1.7rem, 6vw, 2.3rem);
+      }
+
+      .back-link {
+        margin-top: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section id="importScreen" class="import-wrap">
+    <div class="import-card">
+      <div class="import-head">
+        <h1>Bank Fee Analysis</h1>
+        <p>Select a data source to build your dashboard</p>
+        <div class="hero-media" aria-hidden="true">
+          <img src="https://images.unsplash.com/photo-1573497491208-6b1acb260507?auto=format&fit=crop&w=1200&q=80" alt="" />
+        </div>
+      </div>
+      <div class="import-body">
+        <div class="method-tabs" id="methodTabs">
+          <button class="method-btn active" data-method="file">Option A - File Upload</button>
+          <button class="method-btn" data-method="api">Option B - API Connection</button>
+          <button class="method-btn" data-method="manual">Option C - Manual Entry</button>
+        </div>
+
+        <div id="filePanel" class="panel">
+          <div>
+            <label for="fileInput">CSV or JSON file</label>
+            <input id="fileInput" type="file" accept=".csv,.json,application/json,text/csv" />
+          </div>
+          <div class="status" id="fileStatus"></div>
+          <div id="filePreviewSection" class="hidden">
+            <div class="small-note">Preview (first 5 rows)</div>
+            <div class="preview-wrap"><table id="previewTable"></table></div>
+            <div class="actions">
+              <button id="fileLoadBtn" class="btn primary">Load Dashboard &rarr;</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="apiPanel" class="panel hidden">
+          <div class="row two">
+            <div>
+              <label for="banksAuthUrl">Token / Auth URL</label>
+              <input id="banksAuthUrl" type="text" placeholder="https://.../oauth/token" />
+            </div>
+            <div>
+              <label for="banksBaseUrl">API Base URL</label>
+              <input id="banksBaseUrl" type="text" placeholder="https://.../api" />
+            </div>
+          </div>
+          <div class="row two">
+            <div>
+              <label for="banksClientId">Client ID</label>
+              <input id="banksClientId" type="text" placeholder="Client ID" />
+            </div>
+            <div>
+              <label for="banksClientSecret">Client Secret</label>
+              <input id="banksClientSecret" type="password" placeholder="Client Secret" />
+            </div>
+          </div>
+          <div>
+            <label for="banksScope">Scope (optional)</label>
+            <select id="banksScope">
+              <option value="">Select scope</option>
+              <option value="account-scope">account-scope</option>
+              <option value="bank-scope">bank-scope</option>
+              <option value="company-scope">company-scope</option>
+              <option value="files-scope">files-scope</option>
+              <option value="process-template-scope">process-template-scope</option>
+            </select>
+          </div>
+          <input id="banksProxyUrl" type="hidden" value="http://localhost:4000/api/v1/kyriba/banks" />
+          <input id="banksAccessToken" type="hidden" value="" />
+          <div id="processTemplateWrap" class="hidden">
+            <label for="processTemplateCode">Process Template Code</label>
+            <input id="processTemplateCode" type="text" placeholder="Enter process template code" />
+          </div>
+          <div id="taskIdWrap" class="hidden">
+            <label for="taskIdOutput">Task ID</label>
+            <input id="taskIdOutput" type="text" placeholder="Task ID will appear after Load Task ID" />
+          </div>
+          <div class="actions">
+            <button id="getBanksTokenBtn" class="btn secondary">1) Get Token</button>
+            <button id="loadBanksApiBtn" class="btn secondary">Load Banks (GET /v1/banks)</button>
+            <button id="loadTaskIdBtn" class="btn secondary hidden">Load Task ID</button>
+            <button id="loadPtResultBtn" class="btn secondary hidden">Load PT Result</button>
+            <button id="confirmPtLoadBtn" class="btn primary hidden">Load Data to Dashboard</button>
+          </div>
+          <div class="status" id="banksStatus"></div>
+          <div id="ptPreviewWrap" class="hidden">
+            <div class="small-note">Process template result preview (not loaded yet)</div>
+            <div id="ptPreviewScrollTop" class="scroll-assist">
+              <div id="ptPreviewScrollTopInner" class="scroll-assist-inner"></div>
+            </div>
+            <div id="ptPreviewScrollBody" class="preview-wrap"><table id="ptPreviewTable"></table></div>
+            <div class="preview-pagination">
+              <button id="ptScrollLeftBtn" class="btn secondary">◀</button>
+              <button id="ptScrollRightBtn" class="btn secondary">▶</button>
+              <button id="ptPrevPageBtn" class="btn secondary">Prev</button>
+              <button id="ptNextPageBtn" class="btn secondary">Next</button>
+              <span id="ptPageInfo" class="page-info">Page 1 / 1</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="manualPanel" class="panel hidden">
+          <div class="actions">
+            <button id="addManualRowBtn" class="btn secondary">+ Add Row</button>
+          </div>
+          <div id="manualList" class="manual-list"></div>
+          <div class="status" id="manualStatus"></div>
+          <div class="actions">
+            <button id="manualBuildBtn" class="btn primary">Build Dashboard &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="dashboardScreen" class="container dashboard hidden">
+    <header>
+      <div>
+        <h2>Bank Fee Analysis Dashboard</h2>
+        <p class="sub" id="recordMeta"></p>
+      </div>
+      <a href="#" id="changeSourceLink" class="back-link">&larr; Change Data Source</a>
+    </header>
+
+    <section class="kpi-grid">
+      <article class="kpi">
+        <div class="label">Total Charges</div>
+        <div class="value" id="kpiTotalCharges">$0.00</div>
+      </article>
+      <article class="kpi">
+        <div class="label">Total Quantities</div>
+        <div class="value" id="kpiTotalVolume">0</div>
+      </article>
+      <article class="kpi">
+        <div class="label">Over Charge Amount</div>
+        <div class="value" id="kpiOvercharge">$0.00</div>
+      </article>
+      <article class="kpi">
+        <div class="label">Top Overcharging Bank</div>
+        <div class="value" id="kpiTopBank">-</div>
+      </article>
+    </section>
+
+    <section class="card">
+      <div class="actions" style="justify-content: space-between; margin-bottom: 10px;">
+        <h3 style="margin:0;">Executive Summary</h3>
+        <button id="copySummaryBtn" class="btn secondary">Copy Summary</button>
+      </div>
+      <div id="summaryText" class="summary-box"></div>
+    </section>
+
+    <section class="chart-grid">
+      <article class="card">
+        <h3>Overcharge Share by Bank</h3>
+        <div class="chart-wrap short"><canvas id="chartDoughnut"></canvas></div>
+      </article>
+
+      <article class="card">
+        <h3>Contract Charge vs Overcharge by Bank</h3>
+        <div class="chart-wrap short"><canvas id="chartBankBar"></canvas></div>
+      </article>
+
+      <article class="card full">
+        <h3>Services Charged Most by Bank</h3>
+        <div class="filter-row">
+          <div class="field">
+            <label for="bankFilter">Bank Filter</label>
+            <select id="bankFilter"></select>
+          </div>
+          <div class="field">
+            <label for="serviceFilter">Service Code Filter</label>
+            <select id="serviceFilter"></select>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chartServiceBar"></canvas></div>
+      </article>
+    </section>
+  </section>
+
+  <script>
+    const state = {
+      currentMethod: 'file',
+      stagedRecords: [],
+      records: [],
+      aggregates: null,
+      bankOptions: [],
+      ptPreviewPayload: null,
+      ptPreviewRecords: [],
+      ptPreviewRows: [],
+      ptPreviewCols: [],
+      ptPreviewPage: 1,
+      ptPreviewPageSize: 20,
+      processTaskId: '',
+      processTaskCode: '',
+      dashboardCurrency: 'USD',
+      charts: {
+        doughnut: null,
+        bankBar: null,
+        serviceBar: null,
+      },
+      manualRowId: 0,
+    };
+
+    const el = {
+      importScreen: document.getElementById('importScreen'),
+      dashboardScreen: document.getElementById('dashboardScreen'),
+      methodTabs: document.getElementById('methodTabs'),
+      filePanel: document.getElementById('filePanel'),
+      apiPanel: document.getElementById('apiPanel'),
+      manualPanel: document.getElementById('manualPanel'),
+      fileInput: document.getElementById('fileInput'),
+      fileStatus: document.getElementById('fileStatus'),
+      filePreviewSection: document.getElementById('filePreviewSection'),
+      previewTable: document.getElementById('previewTable'),
+      fileLoadBtn: document.getElementById('fileLoadBtn'),
+      banksAuthUrl: document.getElementById('banksAuthUrl'),
+      banksBaseUrl: document.getElementById('banksBaseUrl'),
+      banksClientId: document.getElementById('banksClientId'),
+      banksClientSecret: document.getElementById('banksClientSecret'),
+      banksScope: document.getElementById('banksScope'),
+      banksProxyUrl: document.getElementById('banksProxyUrl'),
+      banksAccessToken: document.getElementById('banksAccessToken'),
+      processTemplateWrap: document.getElementById('processTemplateWrap'),
+      processTemplateCode: document.getElementById('processTemplateCode'),
+      taskIdWrap: document.getElementById('taskIdWrap'),
+      taskIdOutput: document.getElementById('taskIdOutput'),
+      getBanksTokenBtn: document.getElementById('getBanksTokenBtn'),
+      loadBanksApiBtn: document.getElementById('loadBanksApiBtn'),
+      loadTaskIdBtn: document.getElementById('loadTaskIdBtn'),
+      loadPtResultBtn: document.getElementById('loadPtResultBtn'),
+      confirmPtLoadBtn: document.getElementById('confirmPtLoadBtn'),
+      banksStatus: document.getElementById('banksStatus'),
+      ptPreviewWrap: document.getElementById('ptPreviewWrap'),
+      ptPreviewScrollTop: document.getElementById('ptPreviewScrollTop'),
+      ptPreviewScrollTopInner: document.getElementById('ptPreviewScrollTopInner'),
+      ptPreviewScrollBody: document.getElementById('ptPreviewScrollBody'),
+      ptPreviewTable: document.getElementById('ptPreviewTable'),
+      ptScrollLeftBtn: document.getElementById('ptScrollLeftBtn'),
+      ptScrollRightBtn: document.getElementById('ptScrollRightBtn'),
+      ptPrevPageBtn: document.getElementById('ptPrevPageBtn'),
+      ptNextPageBtn: document.getElementById('ptNextPageBtn'),
+      ptPageInfo: document.getElementById('ptPageInfo'),
+      addManualRowBtn: document.getElementById('addManualRowBtn'),
+      manualList: document.getElementById('manualList'),
+      manualStatus: document.getElementById('manualStatus'),
+      manualBuildBtn: document.getElementById('manualBuildBtn'),
+      changeSourceLink: document.getElementById('changeSourceLink'),
+      recordMeta: document.getElementById('recordMeta'),
+      kpiTotalCharges: document.getElementById('kpiTotalCharges'),
+      kpiTotalVolume: document.getElementById('kpiTotalVolume'),
+      kpiOvercharge: document.getElementById('kpiOvercharge'),
+      kpiTopBank: document.getElementById('kpiTopBank'),
+      summaryText: document.getElementById('summaryText'),
+      copySummaryBtn: document.getElementById('copySummaryBtn'),
+      bankFilter: document.getElementById('bankFilter'),
+      serviceFilter: document.getElementById('serviceFilter'),
+      chartDoughnut: document.getElementById('chartDoughnut'),
+      chartBankBar: document.getElementById('chartBankBar'),
+      chartServiceBar: document.getElementById('chartServiceBar'),
+    };
+
+    function normalizeKey(key) {
+      return String(key || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    }
+
+    function toNumber(value) {
+      if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+      if (typeof value === 'string') {
+        const cleaned = value.replace(/[$,%\s,]/g, '');
+        const num = Number(cleaned);
+        return Number.isFinite(num) ? num : 0;
+      }
+      return 0;
+    }
+
+    function money(value) {
+      const currency = normalizeCurrencyCode(state.dashboardCurrency) || 'USD';
+      try {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(value || 0);
+      } catch {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(value || 0);
+      }
+    }
+
+    function integer(value) {
+      return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value || 0);
+    }
+
+    function percent(value) {
+      return `${(value * 100).toFixed(2)}%`;
+    }
+
+    function aliasRead(obj, aliases) {
+      for (const alias of aliases) {
+        const n = normalizeKey(alias);
+        for (const key of Object.keys(obj)) {
+          if (normalizeKey(key) === n) return obj[key];
+        }
+      }
+      return undefined;
+    }
+
+    function pickByContains(obj, containsAliases) {
+      const keys = Object.keys(obj || {});
+      for (const alias of containsAliases) {
+        const target = normalizeKey(alias);
+        for (const key of keys) {
+          const nKey = normalizeKey(key);
+          if (nKey.includes(target)) return obj[key];
+        }
+      }
+      return undefined;
+    }
+
+    function normalizeCurrencyCode(value) {
+      const code = String(value || '').trim().toUpperCase();
+      return /^[A-Z]{3}$/.test(code) ? code : '';
+    }
+
+    function mapToRecord(input) {
+      const entity = String(aliasRead(input, ['entity', 'bank', 'bank_name', 'entity_bank_name']) || '').trim();
+      const serviceCode = String(aliasRead(input, ['service_code', 'service', 'servicecode']) || '').trim();
+      const bankCode = String(aliasRead(input, ['bank_code', 'bankcode']) || '').trim();
+      const description = String(aliasRead(input, ['description', 'service_description']) || '').trim();
+      const periodStartDate = String(aliasRead(input, ['period_start_date', 'from_date', 'start_date', 'from']) || '').trim();
+      const periodEndDate = String(aliasRead(input, ['period_end_date', 'to_date', 'end_date', 'to']) || '').trim();
+      const actualPrice = toNumber(aliasRead(input, ['actual_price', 'unit_price', 'price']));
+      const actualVolume = toNumber(aliasRead(input, ['actual_volume', 'volume', 'qty', 'quantity']));
+      const providedActualCharge = aliasRead(input, ['actual_charge', 'charge', 'actualamount']);
+      const actualCharge = Number.isFinite(toNumber(providedActualCharge)) && providedActualCharge !== undefined
+        ? toNumber(providedActualCharge)
+        : actualPrice * actualVolume;
+      const contractCharge = toNumber(aliasRead(input, ['contract_charge', 'contracted_charge', 'contract_fee']));
+      const chargeVariance = actualCharge - contractCharge;
+      const currencyCode = normalizeCurrencyCode(
+        aliasRead(input, ['currency_code', 'currency', 'ccy', 'conversion_currency', 'amount_currency']) ??
+        pickByContains(input, ['currency_code', 'currency', 'conversion currency', 'ccy'])
+      );
+
+      return {
+        entity: entity || 'Unknown',
+        service_code: serviceCode || 'N/A',
+        bank_code: bankCode,
+        description: description || '-',
+        currency_code: currencyCode || null,
+        actual_price: actualPrice,
+        actual_volume: actualVolume,
+        actual_charge: actualCharge,
+        contract_charge: contractCharge,
+        charge_variance: chargeVariance,
+        period_start_date: periodStartDate || null,
+        period_end_date: periodEndDate || null,
+      };
+    }
+
+    function mapPtRowToRecord(input) {
+      const entity = String(
+        aliasRead(input, ['entity', 'bank', 'bank_name', 'entity_bank_name']) ??
+        pickByContains(input, ['entity', 'company']) ??
+        ''
+      ).trim();
+
+      const serviceCode = String(
+        aliasRead(input, ['service_code', 'service', 'servicecode']) ??
+        pickByContains(input, ['service_code', 'service_co', 'service']) ??
+        ''
+      ).trim();
+
+      const bankCode = String(
+        aliasRead(input, ['bank_code', 'bankcode']) ??
+        pickByContains(input, ['bank_code', 'bank co', 'bankco']) ??
+        ''
+      ).trim();
+
+      const description = String(
+        aliasRead(input, ['description', 'service_description']) ??
+        pickByContains(input, ['description', 'service_desc', 'service name']) ??
+        ''
+      ).trim();
+
+      const actualPrice = toNumber(
+        aliasRead(input, ['actual_price', 'unit_price', 'price']) ??
+        pickByContains(input, ['actual_price', 'actual_pri', 'actual unit price', 'unit_price'])
+      );
+
+      const actualVolume = toNumber(
+        aliasRead(input, ['actual_volume', 'volume', 'qty', 'quantity']) ??
+        pickByContains(input, ['actual_volume', 'actual_vol', 'volume', 'qty'])
+      );
+
+      const providedActualCharge =
+        aliasRead(input, ['actual_charge', 'charge', 'actualamount']) ??
+        pickByContains(input, ['actual_charge', 'actual_cha', 'actual amount', 'actual_amt']);
+
+      let contractChargeRaw =
+        aliasRead(input, ['contract_charge', 'contracted_charge', 'contract_fee']) ??
+        pickByContains(input, ['contract_charge', 'contract_cha', 'contract unit fee', 'contract_fee', 'contract c', 'contract_u']);
+
+      if (contractChargeRaw === undefined) {
+        const keys = Object.keys(input || {});
+        for (const key of keys) {
+          if (normalizeKey(key).includes('contract')) {
+            const candidate = input[key];
+            const num = toNumber(candidate);
+            if (num || String(candidate).trim() === '0') {
+              contractChargeRaw = candidate;
+              break;
+            }
+          }
+        }
+      }
+
+      const actualCharge = Number.isFinite(toNumber(providedActualCharge)) && providedActualCharge !== undefined
+        ? toNumber(providedActualCharge)
+        : actualPrice * actualVolume;
+      const contractCharge = toNumber(contractChargeRaw);
+      const varianceRaw =
+        aliasRead(input, ['charge_variance', 'variance']) ??
+        pickByContains(input, ['charge_variance', 'charge var', 'variance']);
+      const chargeVariance = varianceRaw !== undefined ? toNumber(varianceRaw) : (actualCharge - contractCharge);
+      const currencyCode = normalizeCurrencyCode(
+        aliasRead(input, ['currency_code', 'currency', 'ccy', 'conversion_currency', 'amount_currency']) ??
+        pickByContains(input, ['currency_code', 'currency', 'conversion currency', 'ccy'])
+      );
+
+      const periodStartDate = String(
+        aliasRead(input, ['period_start_date', 'from_date', 'start_date', 'from']) ??
+        pickByContains(input, ['period_start', 'from_date', 'start_date']) ??
+        ''
+      ).trim();
+      const periodEndDate = String(
+        aliasRead(input, ['period_end_date', 'to_date', 'end_date', 'to']) ??
+        pickByContains(input, ['period_end', 'to_date', 'end_date']) ??
+        ''
+      ).trim();
+
+      return {
+        entity: entity || 'Unknown',
+        service_code: serviceCode || 'N/A',
+        bank_code: bankCode,
+        description: description || '-',
+        currency_code: currencyCode || null,
+        actual_price: actualPrice,
+        actual_volume: actualVolume,
+        actual_charge: actualCharge,
+        contract_charge: contractCharge,
+        charge_variance: chargeVariance,
+        period_start_date: periodStartDate || null,
+        period_end_date: periodEndDate || null,
+      };
+    }
+
+    function parseCSV(text) {
+      const lines = text.split(/\r?\n/);
+      const nonEmpty = lines.filter(l => l.trim() !== '');
+      if (nonEmpty.length < 2) throw new Error('CSV must include headers and at least one data row.');
+
+      const isLikelyServiceHeaderLine = (line) => {
+        const norm = normalizeKey(line || '');
+        return norm.includes('service_code') &&
+          (norm.includes('bank_code') || norm.includes('actual_price') || norm.includes('actual_charge'));
+      };
+
+      const parseHeaderContext = (lineIndex) => {
+        const start = Math.max(0, lineIndex - 40);
+        const block = lines.slice(start, lineIndex).join('\n');
+        const fromTo = parseFromToFromText(block);
+        return {
+          entity: parseEntityFromText(block),
+          fromDate: fromTo.fromDate || '',
+          toDate: fromTo.toDate || '',
+          currencyCode: parseCurrencyFromText(block),
+        };
+      };
+
+      const parsedRows = [];
+      for (let i = 0; i < lines.length; i += 1) {
+        const line = lines[i] || '';
+        if (!isLikelyServiceHeaderLine(line)) continue;
+
+        const headers = parseCSVLine(line).map(h => h.trim());
+        const headerInfo = parseHeaderContext(i);
+
+        for (let j = i + 1; j < lines.length; j += 1) {
+          const rowLine = lines[j] || '';
+          const rowTrim = rowLine.trim();
+          if (!rowTrim) continue;
+          if (isLikelyServiceHeaderLine(rowLine)) {
+            i = j - 1;
+            break;
+          }
+
+          const values = parseCSVLine(rowLine);
+          if (!values.length) continue;
+          const obj = {};
+          headers.forEach((h, idx) => {
+            obj[h] = (values[idx] || '').trim();
+          });
+          if (!obj.entity && headerInfo.entity) obj.entity = headerInfo.entity;
+          if (!obj.period_start_date && headerInfo.fromDate) obj.period_start_date = headerInfo.fromDate;
+          if (!obj.period_end_date && headerInfo.toDate) obj.period_end_date = headerInfo.toDate;
+          if (!obj.currency_code && headerInfo.currencyCode) obj.currency_code = headerInfo.currencyCode;
+
+          const serviceProbe = String(
+            aliasRead(obj, ['service_code', 'service', 'servicecode']) ??
+            pickByContains(obj, ['service_code', 'service_co', 'service']) ??
+            ''
+          ).trim();
+          const hasAmountLike = Object.values(obj).some(v => /[0-9]/.test(String(v || '')));
+          if (!serviceProbe && !hasAmountLike) continue;
+          parsedRows.push(obj);
+        }
+      }
+      if (parsedRows.length) return parsedRows.map(mapPtRowToRecord);
+
+      // Simple CSV fallback: first row is header
+      const rows = nonEmpty.map(parseCSVLine);
+      const headers = rows[0].map(h => h.trim());
+      const records = [];
+      for (let i = 1; i < rows.length; i += 1) {
+        const rowObj = {};
+        headers.forEach((h, idx) => {
+          rowObj[h] = rows[i][idx] ?? '';
+        });
+        records.push(mapToRecord(rowObj));
+      }
+      return records;
+    }
+
+    function parseCSVLine(line) {
+      const out = [];
+      let current = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i += 1) {
+        const char = line[i];
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            current += '"';
+            i += 1;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          out.push(current);
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      out.push(current);
+      return out;
+    }
+
+    function aggregateRecords(records) {
+      const byBankMap = new Map();
+      const byServiceBankMap = new Map();
+
+      let totalCharges = 0;
+      let totalVolume = 0;
+      let totalOvercharge = 0;
+      let totalContractCharge = 0;
+
+      for (const rec of records) {
+        totalCharges += rec.actual_charge;
+        totalVolume += rec.actual_volume;
+        totalContractCharge += rec.contract_charge;
+        if (rec.charge_variance > 0) totalOvercharge += rec.charge_variance;
+
+        if (!byBankMap.has(rec.entity)) {
+          byBankMap.set(rec.entity, {
+            entity: rec.entity,
+            actual_charge: 0,
+            contract_charge: 0,
+            charge_variance: 0,
+            overcharge_amount: 0,
+            volume: 0,
+          });
+        }
+        const b = byBankMap.get(rec.entity);
+        b.actual_charge += rec.actual_charge;
+        b.contract_charge += rec.contract_charge;
+        b.charge_variance += rec.charge_variance;
+        if (rec.charge_variance > 0) b.overcharge_amount += rec.charge_variance;
+        b.volume += rec.actual_volume;
+
+        const key = `${rec.entity}__${rec.service_code}`;
+        if (!byServiceBankMap.has(key)) {
+          byServiceBankMap.set(key, {
+            entity: rec.entity,
+            service_code: rec.service_code,
+            description: rec.description,
+            actual_charge: 0,
+            contract_charge: 0,
+            charge_variance: 0,
+            volume: 0,
+          });
+        }
+        const s = byServiceBankMap.get(key);
+        s.actual_charge += rec.actual_charge;
+        s.contract_charge += rec.contract_charge;
+        s.charge_variance += rec.charge_variance;
+        s.volume += rec.actual_volume;
+      }
+
+      const byBank = [...byBankMap.values()].sort((a, b) => b.charge_variance - a.charge_variance);
+      const byServiceBank = [...byServiceBankMap.values()].sort((a, b) => b.charge_variance - a.charge_variance);
+      const topOverchargeBankRow = [...byBank].sort((a, b) => b.overcharge_amount - a.overcharge_amount)[0];
+      const topOverchargingBank = topOverchargeBankRow?.overcharge_amount > 0
+        ? topOverchargeBankRow.entity
+        : (byBank.length ? byBank[0].entity : '-');
+
+      return {
+        records,
+        by_bank: byBank,
+        by_service_bank: byServiceBank,
+        total_charges: totalCharges,
+        total_volume: totalVolume,
+        total_overcharge: totalOvercharge,
+        total_contract_charge: totalContractCharge,
+        top_overcharging_bank: topOverchargingBank,
+      };
+    }
+
+    function parseDashboardJSON(obj) {
+      if (Array.isArray(obj)) {
+        return obj.map(mapToRecord);
+      }
+      if (obj && Array.isArray(obj.records)) {
+        return obj.records.map(mapToRecord);
+      }
+      if (obj && obj.dashboardData) {
+        return parseDashboardJSON(obj.dashboardData);
+      }
+      if (obj && Array.isArray(obj.data)) {
+        return obj.data.map(mapToRecord);
+      }
+      throw new Error('JSON format not recognized. Provide dashboardData object with records[] or an array of records.');
+    }
+
+    function renderPreview(records) {
+      const subset = records.slice(0, 5);
+      if (!subset.length) {
+        el.previewTable.innerHTML = '';
+        return;
+      }
+      const cols = ['entity', 'service_code', 'description', 'actual_price', 'actual_volume', 'actual_charge', 'contract_charge', 'charge_variance'];
+      const thead = `<thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
+      const tbody = `<tbody>${subset.map(r => `<tr>${cols.map(c => `<td>${typeof r[c] === 'number' ? r[c].toFixed(2) : r[c]}</td>`).join('')}</tr>`).join('')}</tbody>`;
+      el.previewTable.innerHTML = thead + tbody;
+    }
+
+    function setMethod(method) {
+      state.currentMethod = method;
+      [...el.methodTabs.querySelectorAll('.method-btn')].forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.method === method);
+      });
+      el.filePanel.classList.toggle('hidden', method !== 'file');
+      el.apiPanel.classList.toggle('hidden', method !== 'api');
+      el.manualPanel.classList.toggle('hidden', method !== 'manual');
+    }
+
+    function showStatus(node, message, kind = '') {
+      node.textContent = message;
+      node.className = `status ${kind}`.trim();
+    }
+
+    async function getHttpErrorDetail(res) {
+      const base = `HTTP ${res.status} - ${res.statusText}`;
+      try {
+        const json = await res.json();
+        const detail = json?.error || json?.message || '';
+        return detail ? `${base} | ${detail}` : base;
+      } catch {
+        try {
+          const text = (await res.text()).trim();
+          return text ? `${base} | ${text}` : base;
+        } catch {
+          return base;
+        }
+      }
+    }
+
+    function buildBankOptionsMarkup(selected = '') {
+      const base = state.bankOptions.length ? state.bankOptions : ['Unknown'];
+      const options = [...base];
+      if (selected && !options.includes(selected)) options.unshift(selected);
+      return options
+        .map(name => `<option value="${name}" ${name === selected ? 'selected' : ''}>${name}</option>`)
+        .join('');
+    }
+
+    function parseBanksList(payload) {
+      const rows = Array.isArray(payload)
+        ? payload
+        : payload?.data || payload?.items || payload?.results || payload?.banks || [];
+      if (!Array.isArray(rows)) return [];
+      const names = rows
+        .map(item => String(
+          item?.entity ||
+          item?.name ||
+          item?.bank_name ||
+          item?.bankName ||
+          item?.short_name ||
+          item?.code ||
+          ''
+        ).trim())
+        .filter(Boolean);
+      return [...new Set(names)].sort((a, b) => a.localeCompare(b));
+    }
+
+    function walkObjects(node, cb) {
+      if (!node) return;
+      if (Array.isArray(node)) {
+        node.forEach(item => walkObjects(item, cb));
+        return;
+      }
+      if (typeof node === 'object') {
+        cb(node);
+        Object.values(node).forEach(v => walkObjects(v, cb));
+      }
+    }
+
+    function parseFromToFromText(text) {
+      if (!text) return {};
+      const s = String(text);
+      const m = s.match(/from[:\s]*([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4})\s*(?:to|->|-)\s*([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4})/i);
+      if (!m) return {};
+      return { fromDate: m[1], toDate: m[2] };
+    }
+
+    function parseEntityFromText(text) {
+      if (!text) return '';
+      const s = String(text);
+      const m = s.match(/\bentity\b\s*[:=]\s*([A-Za-z0-9._-]+)/i);
+      return m ? String(m[1] || '').trim() : '';
+    }
+
+    function parseCurrencyFromText(text) {
+      if (!text) return '';
+      const s = String(text);
+      const patterns = [
+        /\bconversion\s*currency\b\s*[:=]\s*"?([A-Za-z]{3})"?\b/i,
+        /\bcurrency\b\s*[:=]\s*"?([A-Za-z]{3})"?\b/i,
+        /\bconversion\s*currency\b[^A-Za-z0-9]{1,10}"?([A-Za-z]{3})"?\b/i,
+        /\bcurrency\b[^A-Za-z0-9]{1,10}"?([A-Za-z]{3})"?\b/i,
+      ];
+      for (const p of patterns) {
+        const m = s.match(p);
+        if (m && m[1]) {
+          const c = normalizeCurrencyCode(m[1]);
+          if (c) return c;
+        }
+      }
+      return '';
+    }
+
+    function extractHeaderInfo(payload) {
+      let entity = '';
+      let fromDate = '';
+      let toDate = '';
+      let currencyCode = '';
+
+      walkObjects(payload, (obj) => {
+        if (!entity) {
+          entity = String(
+            aliasRead(obj, ['entity', 'entity_code', 'entityid', 'entity_id', 'company', 'company_code']) || ''
+          ).trim();
+        }
+        if (!fromDate) {
+          fromDate = String(aliasRead(obj, ['from', 'from_date', 'period_start_date', 'start_date']) || '').trim();
+        }
+        if (!toDate) {
+          toDate = String(aliasRead(obj, ['to', 'to_date', 'period_end_date', 'end_date']) || '').trim();
+        }
+        if (!currencyCode) {
+          currencyCode = normalizeCurrencyCode(
+            aliasRead(obj, ['currency_code', 'currency', 'ccy', 'conversion_currency', 'amount_currency']) ??
+            pickByContains(obj, ['currency_code', 'currency', 'conversion currency', 'ccy'])
+          );
+        }
+        for (const val of Object.values(obj)) {
+          if (typeof val !== 'string') continue;
+          if (!fromDate || !toDate) {
+            const parsed = parseFromToFromText(val);
+            if (!fromDate && parsed.fromDate) fromDate = parsed.fromDate;
+            if (!toDate && parsed.toDate) toDate = parsed.toDate;
+          }
+          if (!entity) {
+            const parsedEntity = parseEntityFromText(val);
+            if (parsedEntity) entity = parsedEntity;
+          }
+          if (!currencyCode) {
+            const parsedCurrency = parseCurrencyFromText(val);
+            if (parsedCurrency) currencyCode = parsedCurrency;
+          }
+        }
+      });
+
+      // Raw text fallback (e.g. CSV/Excel export header block)
+      if ((!entity || !fromDate || !toDate) && payload && typeof payload.raw === 'string') {
+        const raw = payload.raw;
+        if (!entity) {
+          const parsedEntity = parseEntityFromText(raw);
+          if (parsedEntity) entity = parsedEntity;
+        }
+        if (!fromDate || !toDate) {
+          const parsed = parseFromToFromText(raw);
+          if (!fromDate && parsed.fromDate) fromDate = parsed.fromDate;
+          if (!toDate && parsed.toDate) toDate = parsed.toDate;
+        }
+        if (!currencyCode) {
+          const parsedCurrency = parseCurrencyFromText(raw);
+          if (parsedCurrency) currencyCode = parsedCurrency;
+        }
+      }
+
+      return { entity, fromDate, toDate, currencyCode };
+    }
+
+    function detectServiceRows(payload) {
+      let winner = [];
+      walkObjects(payload, (obj) => {
+        for (const [key, value] of Object.entries(obj)) {
+          if (!Array.isArray(value) || !value.length) continue;
+          const keyNorm = normalizeKey(key);
+          const looksLikeServiceArray = keyNorm.includes('service') || value.some((r) => {
+            if (!r || typeof r !== 'object') return false;
+            const keys = Object.keys(r).map(normalizeKey);
+            return keys.includes('service_code') || keys.includes('servicecode') || keys.includes('service');
+          });
+          if (looksLikeServiceArray && value.length > winner.length) winner = value;
+        }
+      });
+      return winner;
+    }
+
+    function flattenProcessTemplateStructure(payload) {
+      const header = extractHeaderInfo(payload);
+      const serviceRows = detectServiceRows(payload);
+      if (!serviceRows.length) return [];
+
+      return serviceRows.map((row) => {
+        const r = (row && typeof row === 'object') ? row : { value: row };
+        const serviceCode = String(aliasRead(r, ['service_code', 'servicecode', 'service', 'service_code_id']) || '').trim();
+        const rowEntity = String(aliasRead(r, ['entity', 'entity_code']) || '').trim();
+        return {
+          ...r,
+          entity: rowEntity || header.entity || 'Unknown',
+          period_start_date: String(aliasRead(r, ['period_start_date', 'from_date', 'from']) || header.fromDate || '').trim(),
+          period_end_date: String(aliasRead(r, ['period_end_date', 'to_date', 'to']) || header.toDate || '').trim(),
+          currency_code: normalizeCurrencyCode(aliasRead(r, ['currency_code', 'currency', 'ccy']) || '') || header.currencyCode || null,
+          service_code: serviceCode || 'N/A',
+        };
+      });
+    }
+
+    function extractRowsFromPayload(payload) {
+      if (!payload) return [];
+      if (Array.isArray(payload)) return payload;
+
+      const flattened = flattenProcessTemplateStructure(payload);
+      if (flattened.length) return flattened;
+
+      const directCandidates = [
+        payload.records,
+        payload.data,
+        payload.items,
+        payload.results,
+        payload.rows,
+        payload.files,
+      ];
+      for (const c of directCandidates) {
+        if (Array.isArray(c)) return c;
+      }
+
+      if (payload.data && typeof payload.data === 'object') {
+        const nested = extractRowsFromPayload(payload.data);
+        if (nested.length) return nested;
+      }
+      if (payload.result && typeof payload.result === 'object') {
+        const nested = extractRowsFromPayload(payload.result);
+        if (nested.length) return nested;
+      }
+
+      // Raw response fallbacks: JSON string or CSV text
+      if (typeof payload.raw === 'string' && payload.raw.trim()) {
+        const raw = payload.raw.trim();
+        try {
+          const parsed = JSON.parse(raw);
+          const nested = extractRowsFromPayload(parsed);
+          if (nested.length) return nested;
+          if (parsed && typeof parsed === 'object') return [parsed];
+        } catch {
+          const lines = raw.split(/\r?\n/);
+          const isLikelyServiceHeaderLine = (line) => {
+            const norm = normalizeKey(line || '');
+            return norm.includes('service_code') &&
+              (norm.includes('bank_code') || norm.includes('actual_price') || norm.includes('actual_charge'));
+          };
+
+          const parseHeaderContext = (lineIndex) => {
+            const start = Math.max(0, lineIndex - 30);
+            const block = lines.slice(start, lineIndex).join('\n');
+            const fromTo = parseFromToFromText(block);
+            return {
+              entity: parseEntityFromText(block),
+              fromDate: fromTo.fromDate || '',
+              toDate: fromTo.toDate || '',
+              currencyCode: parseCurrencyFromText(block),
+            };
+          };
+
+          const sectionRows = [];
+          for (let i = 0; i < lines.length; i += 1) {
+            const line = lines[i] || '';
+            if (!isLikelyServiceHeaderLine(line)) continue;
+
+            const headers = parseCSVLine(line).map(h => h.trim());
+            const headerInfo = parseHeaderContext(i);
+
+            for (let j = i + 1; j < lines.length; j += 1) {
+              const rowLine = lines[j] || '';
+              const rowTrim = rowLine.trim();
+              if (!rowTrim) continue;
+              if (isLikelyServiceHeaderLine(rowLine)) {
+                i = j - 1;
+                break;
+              }
+              if (!rowLine.includes(',') && parseCSVLine(rowLine).length <= 1) {
+                continue;
+              }
+
+              const values = parseCSVLine(rowLine);
+              const obj = {};
+              headers.forEach((h, idx) => {
+                obj[h] = (values[idx] || '').trim();
+              });
+
+              const hasServiceLike = Object.values(obj).some(v => /[0-9A-Za-z]/.test(String(v || '')));
+              if (!hasServiceLike) continue;
+
+              if (!obj.entity && headerInfo.entity) obj.entity = headerInfo.entity;
+              if (!obj.period_start_date && headerInfo.fromDate) obj.period_start_date = headerInfo.fromDate;
+              if (!obj.period_end_date && headerInfo.toDate) obj.period_end_date = headerInfo.toDate;
+              if (!obj.currency_code && headerInfo.currencyCode) obj.currency_code = headerInfo.currencyCode;
+              sectionRows.push(obj);
+            }
+          }
+
+          if (sectionRows.length) return sectionRows;
+
+          const nonEmptyLines = lines.filter(Boolean);
+          if (nonEmptyLines.length >= 2) {
+            let headerIdx = nonEmptyLines.findIndex((ln) => /service\s*code/i.test(ln));
+            if (headerIdx < 0 && nonEmptyLines[0].includes(',')) headerIdx = 0;
+            if (headerIdx < 0) return [];
+
+            const headerInfo = extractHeaderInfo({ raw });
+            const headers = parseCSVLine(nonEmptyLines[headerIdx]).map(h => h.trim());
+            const csvRows = nonEmptyLines.slice(headerIdx + 1).map((line) => {
+              const values = parseCSVLine(line);
+              const obj = {};
+              headers.forEach((h, idx) => { obj[h] = (values[idx] || '').trim(); });
+              if (!obj.entity && headerInfo.entity) obj.entity = headerInfo.entity;
+              if (!obj.period_start_date && headerInfo.fromDate) obj.period_start_date = headerInfo.fromDate;
+              if (!obj.period_end_date && headerInfo.toDate) obj.period_end_date = headerInfo.toDate;
+              return obj;
+            }).filter(r => Object.values(r).some(v => String(v || '').trim() !== ''));
+            if (csvRows.length) return csvRows;
+          }
+        }
+      }
+
+      // If API returns an object (e.g., file metadata), preview it as one row.
+      if (payload && typeof payload === 'object') return [payload];
+      return [];
+    }
+
+    function renderObjectPreviewTable(rows) {
+      if (!rows.length) {
+        el.ptPreviewTable.innerHTML = '';
+        el.ptPageInfo.textContent = 'Page 0 / 0';
+        el.ptPrevPageBtn.disabled = true;
+        el.ptNextPageBtn.disabled = true;
+        return;
+      }
+      const sample = rows.filter(r => r && typeof r === 'object');
+      const preferred = [
+        'entity',
+        'period_start_date',
+        'period_end_date',
+        'service_code',
+        'bank_code',
+        'description',
+        'actual_price',
+        'actual_volume',
+        'actual_charge',
+        'contract_charge',
+        'charge_variance',
+      ];
+      const unionSet = new Set();
+      sample.forEach((row) => {
+        Object.keys(row).forEach((k) => unionSet.add(k));
+      });
+      const allKeys = [...unionSet];
+      const presentPreferred = preferred.filter(c => allKeys.includes(c));
+      const others = allKeys.filter(c => !presentPreferred.includes(c));
+      const cols = [...presentPreferred, ...others];
+      if (!cols.length) {
+        el.ptPreviewTable.innerHTML = '<tbody><tr><td>No tabular fields found in response.</td></tr></tbody>';
+        el.ptPageInfo.textContent = 'Page 0 / 0';
+        el.ptPrevPageBtn.disabled = true;
+        el.ptNextPageBtn.disabled = true;
+        return;
+      }
+      state.ptPreviewRows = rows;
+      state.ptPreviewCols = cols;
+      state.ptPreviewPage = 1;
+      renderPtPreviewPage();
+    }
+
+    function renderPtPreviewPage() {
+      const rows = state.ptPreviewRows || [];
+      const cols = state.ptPreviewCols || [];
+      if (!rows.length || !cols.length) {
+        el.ptPreviewTable.innerHTML = '';
+        el.ptPageInfo.textContent = 'Page 0 / 0';
+        el.ptPrevPageBtn.disabled = true;
+        el.ptNextPageBtn.disabled = true;
+        return;
+      }
+
+      const totalPages = Math.max(1, Math.ceil(rows.length / state.ptPreviewPageSize));
+      if (state.ptPreviewPage > totalPages) state.ptPreviewPage = totalPages;
+      if (state.ptPreviewPage < 1) state.ptPreviewPage = 1;
+
+      const start = (state.ptPreviewPage - 1) * state.ptPreviewPageSize;
+      const end = start + state.ptPreviewPageSize;
+      const subset = rows.slice(start, end);
+
+      const stripQuotes = (v) => String(v ?? '').replace(/"/g, '');
+      const thead = `<thead><tr>${cols.map(c => `<th>${stripQuotes(c)}</th>`).join('')}</tr></thead>`;
+      const tbody = `<tbody>${subset.map(r => {
+        const obj = (r && typeof r === 'object') ? r : { value: String(r) };
+        return `<tr>${cols.map(c => `<td>${stripQuotes(obj[c])}</td>`).join('')}</tr>`;
+      }).join('')}</tbody>`;
+      el.ptPreviewTable.innerHTML = thead + tbody;
+      requestAnimationFrame(syncPtScrollAssistWidth);
+
+      el.ptPageInfo.textContent = `Page ${state.ptPreviewPage} / ${totalPages} (${rows.length} rows)`;
+      el.ptPrevPageBtn.disabled = state.ptPreviewPage <= 1;
+      el.ptNextPageBtn.disabled = state.ptPreviewPage >= totalPages;
+    }
+
+    function syncPtScrollAssistWidth() {
+      const tableWidth = el.ptPreviewTable.scrollWidth || 0;
+      const bodyWidth = el.ptPreviewScrollBody.clientWidth || 0;
+      el.ptPreviewScrollTopInner.style.width = `${Math.max(tableWidth, bodyWidth, 1)}px`;
+    }
+
+    function deriveDashboardRecordsFromPayload(payload) {
+      try {
+        return parseDashboardJSON(payload);
+      } catch {
+        const rows = extractRowsFromPayload(payload);
+        if (!rows.length) throw new Error('No rows found in PT result.');
+        const signals = rows.some(r => {
+          if (!r || typeof r !== 'object') return false;
+          const keys = Object.keys(r).map(normalizeKey);
+          return (
+            keys.includes('entity') || keys.includes('bank') || keys.includes('bank_name') || keys.some(k => k.includes('service'))
+          ) && (
+            keys.includes('actual_price') ||
+            keys.includes('actual_volume') ||
+            keys.includes('actual_charge') ||
+            keys.includes('contract_charge') ||
+            keys.some(k => k.includes('actual')) ||
+            keys.some(k => k.includes('contract'))
+          );
+        });
+        if (!signals) throw new Error('PT result is not in bank-fee record schema.');
+        return rows.map(mapPtRowToRecord);
+      }
+    }
+
+    function applyBankOptionsToManualRows() {
+      const rows = [...el.manualList.querySelectorAll('.manual-row')];
+      rows.forEach((row) => {
+        const select = row.querySelector('[data-field="entity"]');
+        if (!select) return;
+        const current = select.value || '';
+        select.innerHTML = buildBankOptionsMarkup(current);
+      });
+    }
+
+    function isProcessTemplateScopeSelected(scopeValue) {
+      return String(scopeValue || '').split(/\s+/).includes('process-template-scope');
+    }
+
+    function withRequiredPtScopes(scopeValue) {
+      const parts = String(scopeValue || '').split(/\s+/).filter(Boolean);
+      if (!parts.includes('process-template-scope')) return scopeValue;
+      if (!parts.includes('files-scope')) parts.push('files-scope');
+      return parts.join(' ');
+    }
+
+    function syncScopeModeUI() {
+      const isProcessTemplateMode = isProcessTemplateScopeSelected(el.banksScope.value);
+      el.loadBanksApiBtn.classList.toggle('hidden', isProcessTemplateMode);
+      el.processTemplateWrap.classList.toggle('hidden', !isProcessTemplateMode);
+      el.loadTaskIdBtn.classList.toggle('hidden', !isProcessTemplateMode);
+      el.loadPtResultBtn.classList.toggle('hidden', !isProcessTemplateMode);
+      el.taskIdWrap.classList.toggle('hidden', !isProcessTemplateMode);
+      el.ptPreviewWrap.classList.toggle('hidden', !isProcessTemplateMode || !state.ptPreviewPayload);
+      el.confirmPtLoadBtn.classList.toggle('hidden', !isProcessTemplateMode || !state.ptPreviewPayload);
+      el.loadPtResultBtn.disabled = !isProcessTemplateMode || !el.taskIdOutput.value.trim();
+      if (!isProcessTemplateMode) {
+        el.taskIdOutput.value = '';
+        state.processTaskId = '';
+        state.processTaskCode = '';
+        state.ptPreviewPayload = null;
+        state.ptPreviewRecords = [];
+        state.ptPreviewRows = [];
+        state.ptPreviewCols = [];
+        state.ptPreviewPage = 1;
+        el.ptPreviewTable.innerHTML = '';
+      }
+    }
+
+    function resetPtPreviewState() {
+      state.ptPreviewPayload = null;
+      state.ptPreviewRecords = [];
+      state.ptPreviewRows = [];
+      state.ptPreviewCols = [];
+      state.ptPreviewPage = 1;
+      el.ptPreviewTable.innerHTML = '';
+      el.ptPreviewWrap.classList.add('hidden');
+      el.confirmPtLoadBtn.classList.add('hidden');
+      el.ptPageInfo.textContent = 'Page 0 / 0';
+      el.ptPrevPageBtn.disabled = true;
+      el.ptNextPageBtn.disabled = true;
+    }
+
+    function resetPtSessionForNewCode() {
+      el.taskIdOutput.value = '';
+      state.processTaskId = '';
+      state.processTaskCode = '';
+      el.loadPtResultBtn.disabled = true;
+      resetPtPreviewState();
+    }
+
+    function renderDashboard(data) {
+      state.records = data.records;
+      state.aggregates = data;
+      el.importScreen.classList.add('hidden');
+      el.dashboardScreen.classList.remove('hidden');
+
+      el.recordMeta.textContent = `${integer(data.records.length)} records | ${integer(data.by_bank.length)} banks | ${integer(data.by_service_bank.length)} bank-service groups`;
+
+      el.kpiTotalCharges.textContent = money(data.total_charges);
+      el.kpiTotalVolume.textContent = integer(data.total_volume);
+      el.kpiOvercharge.textContent = money(data.total_overcharge);
+      el.kpiTopBank.textContent = data.top_overcharging_bank || '-';
+
+      const summary = buildSummary(data);
+      el.summaryText.textContent = summary;
+
+      setupFilters(data);
+      drawCharts(data);
+    }
+
+    function buildSummary(data) {
+      const overPctOfContract = data.total_contract_charge > 0 ? data.total_overcharge / data.total_contract_charge : 0;
+      const overBanks = data.by_bank.filter(b => (b.overcharge_amount || 0) > 0);
+      const bankLines = overBanks.length
+        ? overBanks
+          .sort((a, b) => (b.overcharge_amount || 0) - (a.overcharge_amount || 0))
+          .map(b => `- ${b.entity}: ${money(b.overcharge_amount || 0)} (${percent(data.total_overcharge > 0 ? (b.overcharge_amount || 0) / data.total_overcharge : 0)} of total overcharges)`)
+          .join('\n')
+        : '- No overcharging banks identified.';
+
+      const top5 = data.by_service_bank.slice(0, 5);
+      const top5Lines = top5.length
+        ? top5.map((s, idx) => `${idx + 1}. ${s.entity} - ${s.service_code}: ${money(s.charge_variance)} (Contract ${money(s.contract_charge)} vs Actual ${money(s.actual_charge)})`).join('\n')
+        : '1. No service-level variance data available.';
+
+      return [
+        `Total actual charges are ${money(data.total_charges)} compared with contracted fees of ${money(data.total_contract_charge)}.`,
+        `Total overcharge amount is ${money(data.total_overcharge)}, which is ${percent(overPctOfContract)} above contracted rates.`,
+        '',
+        'Overcharging banks:',
+        bankLines,
+        '',
+        'Top 5 highest-variance service+bank combinations:',
+        top5Lines,
+        '',
+        'Recommended actions:',
+        '1) Renegotiate with top overcharging bank.',
+        '2) Review high-variance service codes in detail.',
+        '3) Establish monthly variance monitoring with threshold alerts.',
+        '4) Consider consolidating with better-performing banking partners.'
+      ].join('\n');
+    }
+
+    function setupFilters(data) {
+      const banks = ['All', ...new Set(data.by_service_bank.map(x => x.entity))];
+      const services = ['All', ...new Set(data.by_service_bank.map(x => x.service_code))];
+
+      el.bankFilter.innerHTML = banks.map(v => `<option value="${v}">${v}</option>`).join('');
+      el.serviceFilter.innerHTML = services.map(v => `<option value="${v}">${v}</option>`).join('');
+    }
+
+    function getChartColors(n) {
+      const base = ['#0057b8', '#0a76ff', '#2f9bff', '#43b0f1', '#65c7ff', '#ff8a00', '#ffac4d', '#f05d5e', '#76b041', '#6c5ce7'];
+      const arr = [];
+      for (let i = 0; i < n; i += 1) arr.push(base[i % base.length]);
+      return arr;
+    }
+
+    function destroyChart(chart) {
+      if (chart) chart.destroy();
+    }
+
+    function drawCharts(data) {
+      drawDoughnut(data);
+      drawBankBar(data);
+      drawServiceBar(data);
+    }
+
+    function drawDoughnut(data) {
+      const rows = data.by_bank.filter(b => (b.overcharge_amount || 0) > 0);
+      const hasOvercharge = rows.length > 0;
+      const labels = hasOvercharge ? rows.map(x => x.entity) : ['No overcharge'];
+      const values = hasOvercharge ? rows.map(x => x.overcharge_amount || 0) : [1];
+
+      destroyChart(state.charts.doughnut);
+      state.charts.doughnut = new Chart(el.chartDoughnut, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            backgroundColor: hasOvercharge ? getChartColors(values.length) : ['#CBD5E1'],
+            borderColor: '#fff',
+            borderWidth: 2,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label(ctx) {
+                  if (!hasOvercharge) return 'No positive overcharge found in loaded data';
+                  return `${ctx.label}: ${money(ctx.raw)}`;
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function drawBankBar(data) {
+      const rows = [...data.by_bank].sort((a, b) => b.charge_variance - a.charge_variance);
+      const labels = rows.map(x => x.entity);
+      const contract = rows.map(x => x.contract_charge);
+      const variance = rows.map(x => x.charge_variance);
+
+      destroyChart(state.charts.bankBar);
+      state.charts.bankBar = new Chart(el.chartBankBar, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Contract Charge',
+              data: contract,
+              backgroundColor: '#0057b8',
+              borderRadius: 6,
+            },
+            {
+              label: 'Charge Variance',
+              data: variance,
+              backgroundColor: '#ff8a00',
+              borderRadius: 6,
+            },
+          ],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: {
+                callback(v) {
+                  return money(v);
+                },
+              },
+            },
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label(ctx) {
+                  return `${ctx.dataset.label}: ${money(ctx.raw)}`;
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function getFilteredServiceRows(data) {
+      const bank = el.bankFilter.value;
+      const service = el.serviceFilter.value;
+
+      return data.by_service_bank
+        .filter(r => bank === 'All' || r.entity === bank)
+        .filter(r => service === 'All' || r.service_code === service)
+        .sort((a, b) => b.charge_variance - a.charge_variance)
+        .slice(0, 15);
+    }
+
+    function drawServiceBar(data) {
+      const rows = getFilteredServiceRows(data);
+      const labels = rows.map(x => `${x.entity} - ${x.service_code}`);
+      const contract = rows.map(x => x.contract_charge);
+      const variance = rows.map(x => x.charge_variance);
+
+      destroyChart(state.charts.serviceBar);
+      state.charts.serviceBar = new Chart(el.chartServiceBar, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Contract Charge',
+              data: contract,
+              backgroundColor: '#0057b8',
+              borderRadius: 6,
+            },
+            {
+              label: 'Charge Variance',
+              data: variance,
+              backgroundColor: '#ff8a00',
+              borderRadius: 6,
+            },
+          ],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: {
+                callback(v) {
+                  return money(v);
+                },
+              },
+            },
+          },
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label(ctx) {
+                  return `${ctx.dataset.label}: ${money(ctx.raw)}`;
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function startDashboard(records, sourcePayload = null) {
+      if (!records.length) throw new Error('No valid records found.');
+      const counts = {};
+      records.forEach((r) => {
+        const c = normalizeCurrencyCode(r?.currency_code);
+        if (c) counts[c] = (counts[c] || 0) + 1;
+      });
+      let detectedCurrency = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+      if (!detectedCurrency && sourcePayload) {
+        detectedCurrency = normalizeCurrencyCode(extractHeaderInfo(sourcePayload)?.currencyCode || '');
+      }
+      if (!detectedCurrency) detectedCurrency = 'USD';
+      state.dashboardCurrency = detectedCurrency;
+      const agg = aggregateRecords(records);
+      renderDashboard(agg);
+    }
+
+    function backToImport() {
+      el.dashboardScreen.classList.add('hidden');
+      el.importScreen.classList.remove('hidden');
+    }
+
+    function manualRowTemplate(id) {
+      return `
+        <div class="manual-row" data-id="${id}">
+          <div>
+            <label>Entity / Bank Name</label>
+            <select data-field="entity">
+              ${buildBankOptionsMarkup('')}
+            </select>
+          </div>
+          <div>
+            <label>Service Code</label>
+            <input data-field="service_code" value="" />
+          </div>
+          <div>
+            <label>Description</label>
+            <input data-field="description" value="" />
+          </div>
+          <div>
+            <label>Actual Price</label>
+            <input data-field="actual_price" type="number" step="0.01" value="0" />
+          </div>
+          <div>
+            <label>Actual Volume</label>
+            <input data-field="actual_volume" type="number" step="1" value="0" />
+          </div>
+          <div>
+            <label>Contract Charge</label>
+            <input data-field="contract_charge" type="number" step="0.01" value="0" />
+          </div>
+          <div>
+            <label>Currency Code</label>
+            <select data-field="currency_code">
+              <option value="USD" selected>USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="JPY">JPY</option>
+              <option value="CHF">CHF</option>
+              <option value="CNY">CNY</option>
+              <option value="CAD">CAD</option>
+              <option value="AUD">AUD</option>
+              <option value="SGD">SGD</option>
+              <option value="HKD">HKD</option>
+            </select>
+          </div>
+          <div>
+            <label>Bank Code</label>
+            <input data-field="bank_code" value="" />
+          </div>
+          <div>
+            <button class="btn danger" data-action="delete">Delete</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function addManualRow() {
+      state.manualRowId += 1;
+      el.manualList.insertAdjacentHTML('beforeend', manualRowTemplate(state.manualRowId));
+    }
+
+    function collectManualRecords() {
+      const rowEls = [...el.manualList.querySelectorAll('.manual-row')];
+      const out = rowEls.map(node => {
+        const get = (name) => node.querySelector(`[data-field="${name}"]`).value;
+        const actualPrice = toNumber(get('actual_price'));
+        const actualVolume = toNumber(get('actual_volume'));
+        const contractCharge = toNumber(get('contract_charge'));
+        return {
+          entity: get('entity') || 'Unknown',
+          service_code: get('service_code') || 'N/A',
+          currency_code: get('currency_code') || 'USD',
+          bank_code: get('bank_code') || '',
+          description: get('description') || '-',
+          actual_price: actualPrice,
+          actual_volume: actualVolume,
+          actual_charge: actualPrice * actualVolume,
+          contract_charge: contractCharge,
+          charge_variance: (actualPrice * actualVolume) - contractCharge,
+        };
+      });
+      return out;
+    }
+
+    el.methodTabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.method-btn');
+      if (!btn) return;
+      setMethod(btn.dataset.method);
+    });
+
+    el.fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      state.stagedRecords = [];
+      el.filePreviewSection.classList.add('hidden');
+      showStatus(el.fileStatus, '');
+
+      if (!file) return;
+      try {
+        const text = await file.text();
+        let records = [];
+        if (file.name.toLowerCase().endsWith('.csv')) {
+          records = parseCSV(text);
+        } else if (file.name.toLowerCase().endsWith('.json')) {
+          const json = JSON.parse(text);
+          records = parseDashboardJSON(json);
+        } else {
+          throw new Error('Unsupported format. Use CSV or JSON.');
+        }
+
+        state.stagedRecords = records;
+        renderPreview(records);
+        el.filePreviewSection.classList.remove('hidden');
+        showStatus(el.fileStatus, `Parsed ${records.length} records. Preview ready.`, 'ok');
+      } catch (err) {
+        showStatus(el.fileStatus, `Import failed: ${err.message}`, 'error');
+      }
+    });
+
+    el.fileLoadBtn.addEventListener('click', () => {
+      try {
+        startDashboard(state.stagedRecords);
+      } catch (err) {
+        showStatus(el.fileStatus, err.message, 'error');
+      }
+    });
+
+    el.addManualRowBtn.addEventListener('click', () => {
+      addManualRow();
+      showStatus(el.manualStatus, '');
+    });
+
+    el.loadBanksApiBtn.addEventListener('click', async () => {
+      showStatus(el.banksStatus, '');
+      const proxyUrl = el.banksProxyUrl.value.trim();
+      const authUrl = el.banksAuthUrl.value.trim();
+      const baseUrl = el.banksBaseUrl.value.trim();
+      const clientId = el.banksClientId.value.trim();
+      const clientSecret = el.banksClientSecret.value.trim();
+      const scope = el.banksScope.value.trim();
+      const accessToken = el.banksAccessToken.value.trim();
+
+      if (!proxyUrl) {
+        showStatus(el.banksStatus, 'Backend Proxy URL is required.', 'error');
+        return;
+      }
+      if (!baseUrl) {
+        showStatus(el.banksStatus, 'API Base URL is required.', 'error');
+        return;
+      }
+      if (!accessToken && (!authUrl || !clientId || !clientSecret)) {
+        showStatus(el.banksStatus, 'Provide Access Token, or provide Auth URL + Client ID + Client Secret.', 'error');
+        return;
+      }
+
+      showStatus(el.banksStatus, 'Loading banks from API...');
+      try {
+        const res = await fetch(proxyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            token_url: authUrl,
+            base_url: baseUrl,
+            client_id: clientId,
+            client_secret: clientSecret,
+            scope,
+            access_token: accessToken || undefined,
+          }),
+        });
+        if (!res.ok) throw new Error(await getHttpErrorDetail(res));
+        const json = await res.json();
+        const banks = parseBanksList(json);
+        if (!banks.length) throw new Error('No banks found in response payload.');
+        state.bankOptions = banks;
+        applyBankOptionsToManualRows();
+        showStatus(el.banksStatus, `Loaded ${banks.length} banks from API.`, 'ok');
+      } catch (err) {
+        showStatus(el.banksStatus, `API load failed: ${err.message}`, 'error');
+      }
+    });
+
+    el.loadTaskIdBtn.addEventListener('click', async () => {
+      showStatus(el.banksStatus, '');
+      const proxyUrl = el.banksProxyUrl.value.trim();
+      const authUrl = el.banksAuthUrl.value.trim();
+      const baseUrl = el.banksBaseUrl.value.trim();
+      const clientId = el.banksClientId.value.trim();
+      const clientSecret = el.banksClientSecret.value.trim();
+      const scope = withRequiredPtScopes(el.banksScope.value.trim());
+      const processTemplateCode = el.processTemplateCode.value.trim();
+
+      if (!proxyUrl) {
+        showStatus(el.banksStatus, 'Backend Proxy URL is required.', 'error');
+        return;
+      }
+      if (!baseUrl) {
+        showStatus(el.banksStatus, 'API Base URL is required.', 'error');
+        return;
+      }
+      if (!processTemplateCode) {
+        showStatus(el.banksStatus, 'Process Template Code is required.', 'error');
+        return;
+      }
+      if (!authUrl || !clientId || !clientSecret) {
+        showStatus(el.banksStatus, 'Auth URL + Client ID + Client Secret are required for process template run.', 'error');
+        return;
+      }
+
+      showStatus(el.banksStatus, 'Running process template...');
+      try {
+        const runEndpoint = proxyUrl.replace(/\/banks$/, '/process-templates/run');
+        const res = await fetch(runEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            token_url: authUrl,
+            base_url: baseUrl,
+            client_id: clientId,
+            client_secret: clientSecret,
+            scope,
+            access_token: undefined,
+            process_template_code: processTemplateCode,
+          }),
+        });
+        if (!res.ok) throw new Error(await getHttpErrorDetail(res));
+        const json = await res.json();
+        const taskId = String(json?.task_id || '').trim();
+        if (!taskId) {
+          const clue = [
+            json?.status ? `status=${json.status}` : '',
+            json?.location ? `location=${json.location}` : '',
+          ].filter(Boolean).join(', ');
+          throw new Error(`Task ID not found in API response${clue ? ` (${clue})` : ''}.`);
+        }
+        el.taskIdOutput.value = taskId;
+        state.processTaskId = taskId;
+        state.processTaskCode = processTemplateCode;
+        resetPtPreviewState();
+        el.loadPtResultBtn.disabled = false;
+        showStatus(el.banksStatus, `Task ID loaded: ${taskId}`, 'ok');
+      } catch (err) {
+        state.processTaskId = '';
+        state.processTaskCode = '';
+        el.loadPtResultBtn.disabled = true;
+        showStatus(el.banksStatus, `Load Task ID failed: ${err.message}`, 'error');
+      }
+    });
+
+    el.loadPtResultBtn.addEventListener('click', async () => {
+      showStatus(el.banksStatus, '');
+      const proxyUrl = el.banksProxyUrl.value.trim();
+      const authUrl = el.banksAuthUrl.value.trim();
+      const baseUrl = el.banksBaseUrl.value.trim();
+      const clientId = el.banksClientId.value.trim();
+      const clientSecret = el.banksClientSecret.value.trim();
+      const scope = withRequiredPtScopes(el.banksScope.value.trim());
+      const processTemplateCode = el.processTemplateCode.value.trim();
+      const taskId = el.taskIdOutput.value.trim();
+
+      if (!proxyUrl) {
+        showStatus(el.banksStatus, 'Backend Proxy URL is required.', 'error');
+        return;
+      }
+      if (!baseUrl) {
+        showStatus(el.banksStatus, 'API Base URL is required.', 'error');
+        return;
+      }
+      if (!processTemplateCode) {
+        showStatus(el.banksStatus, 'Process Template Code is required.', 'error');
+        return;
+      }
+      if (!taskId) {
+        showStatus(el.banksStatus, 'Task ID is required.', 'error');
+        return;
+      }
+      if (state.processTaskCode && state.processTaskCode !== processTemplateCode) {
+        showStatus(el.banksStatus, 'Process Template Code changed. Click "Load Task ID" again to get a matching Task ID.', 'error');
+        return;
+      }
+      if (!authUrl || !clientId || !clientSecret) {
+        showStatus(el.banksStatus, 'Auth URL + Client ID + Client Secret are required for process template result.', 'error');
+        return;
+      }
+
+      showStatus(el.banksStatus, 'Loading process template result...');
+      try {
+        resetPtPreviewState();
+        const endpoint = proxyUrl.replace(/\/banks$/, '/process-templates/files');
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            token_url: authUrl,
+            base_url: baseUrl,
+            client_id: clientId,
+            client_secret: clientSecret,
+            scope,
+            access_token: undefined,
+            process_template_code: processTemplateCode,
+            task_id: taskId,
+          }),
+        });
+        if (!res.ok) throw new Error(await getHttpErrorDetail(res));
+        const json = await res.json();
+        const payload = json?.data ?? json;
+
+        const rows = extractRowsFromPayload(payload);
+        if (!rows.length) throw new Error('No preview rows returned by process template result.');
+
+        renderObjectPreviewTable(rows);
+        el.ptPreviewWrap.classList.remove('hidden');
+        state.ptPreviewPayload = payload;
+        try {
+          state.ptPreviewRecords = deriveDashboardRecordsFromPayload(payload);
+        } catch {
+          state.ptPreviewRecords = [];
+        }
+        el.confirmPtLoadBtn.classList.remove('hidden');
+        if (state.ptPreviewRecords.length) {
+          showStatus(el.banksStatus, `Preview loaded (${rows.length} rows). Review and click "Load Data to Dashboard" to confirm.`, 'ok');
+        } else {
+          showStatus(el.banksStatus, `Preview loaded (${rows.length} rows). Click "Load Data to Dashboard" to attempt mapped load.`, 'ok');
+        }
+      } catch (err) {
+        showStatus(el.banksStatus, `Load PT Result failed: ${err.message}`, 'error');
+      }
+    });
+
+    el.confirmPtLoadBtn.addEventListener('click', () => {
+      if (!state.ptPreviewPayload) {
+        showStatus(el.banksStatus, 'No preview data available to load.', 'error');
+        return;
+      }
+      if (!state.ptPreviewRecords.length) {
+        try {
+          state.ptPreviewRecords = deriveDashboardRecordsFromPayload(state.ptPreviewPayload);
+        } catch (err) {
+          showStatus(el.banksStatus, `Unable to map preview data to dashboard schema: ${err.message}`, 'error');
+          return;
+        }
+      }
+      startDashboard(state.ptPreviewRecords, state.ptPreviewPayload);
+    });
+
+    el.getBanksTokenBtn.addEventListener('click', async () => {
+      showStatus(el.banksStatus, '');
+      const proxyUrl = el.banksProxyUrl.value.trim();
+      const authUrl = el.banksAuthUrl.value.trim();
+      const clientId = el.banksClientId.value.trim();
+      const clientSecret = el.banksClientSecret.value.trim();
+      const scope = el.banksScope.value.trim();
+
+      if (!proxyUrl) {
+        showStatus(el.banksStatus, 'Backend Proxy URL is required.', 'error');
+        return;
+      }
+      if (!authUrl || !clientId || !clientSecret) {
+        showStatus(el.banksStatus, 'Auth URL, Client ID, and Client Secret are required.', 'error');
+        return;
+      }
+
+      showStatus(el.banksStatus, 'Getting token...');
+      try {
+        const tokenEndpoint = proxyUrl.replace(/\/banks$/, '/token');
+        const res = await fetch(tokenEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            token_url: authUrl,
+            client_id: clientId,
+            client_secret: clientSecret,
+            scope,
+          }),
+        });
+        if (!res.ok) throw new Error(await getHttpErrorDetail(res));
+        const json = await res.json();
+        const token = String(json?.access_token || '').trim();
+        if (!token) throw new Error('No access_token returned.');
+        el.banksAccessToken.value = token;
+        showStatus(el.banksStatus, 'Token acquired. Now click "Load Banks (GET /v1/banks)".', 'ok');
+      } catch (err) {
+        showStatus(el.banksStatus, `Token fetch failed: ${err.message}`, 'error');
+      }
+    });
+
+    el.banksScope.addEventListener('change', () => {
+      syncScopeModeUI();
+    });
+
+    el.taskIdOutput.addEventListener('input', () => {
+      state.processTaskId = el.taskIdOutput.value.trim();
+      if (!state.processTaskId) state.processTaskCode = '';
+      el.loadPtResultBtn.disabled = !state.processTaskId;
+    });
+
+    el.processTemplateCode.addEventListener('input', () => {
+      const code = el.processTemplateCode.value.trim();
+      if (!code) {
+        resetPtSessionForNewCode();
+        return;
+      }
+      if (state.processTaskCode && state.processTaskCode !== code) {
+        resetPtSessionForNewCode();
+        showStatus(el.banksStatus, 'Process Template Code changed. Please click "Load Task ID" again.', '');
+      }
+    });
+
+    el.ptPrevPageBtn.addEventListener('click', () => {
+      state.ptPreviewPage -= 1;
+      renderPtPreviewPage();
+    });
+
+    el.ptNextPageBtn.addEventListener('click', () => {
+      state.ptPreviewPage += 1;
+      renderPtPreviewPage();
+    });
+
+    const scrollPreviewHorizontally = (delta) => {
+      const target = el.ptPreviewScrollBody;
+      target.scrollLeft += delta;
+      el.ptPreviewScrollTop.scrollLeft = target.scrollLeft;
+    };
+    el.ptScrollLeftBtn.addEventListener('click', () => scrollPreviewHorizontally(-280));
+    el.ptScrollRightBtn.addEventListener('click', () => scrollPreviewHorizontally(280));
+
+    let syncingPtScroll = false;
+    el.ptPreviewScrollTop.addEventListener('scroll', () => {
+      if (syncingPtScroll) return;
+      syncingPtScroll = true;
+      el.ptPreviewScrollBody.scrollLeft = el.ptPreviewScrollTop.scrollLeft;
+      syncingPtScroll = false;
+    });
+    el.ptPreviewScrollBody.addEventListener('scroll', () => {
+      if (syncingPtScroll) return;
+      syncingPtScroll = true;
+      el.ptPreviewScrollTop.scrollLeft = el.ptPreviewScrollBody.scrollLeft;
+      syncingPtScroll = false;
+    });
+    window.addEventListener('resize', () => {
+      syncPtScrollAssistWidth();
+    });
+    window.addEventListener('load', () => {
+      syncPtScrollAssistWidth();
+    });
+
+    el.manualList.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action="delete"]');
+      if (!btn) return;
+      const rowEl = e.target.closest('.manual-row');
+      if (rowEl) rowEl.remove();
+    });
+
+    el.manualBuildBtn.addEventListener('click', () => {
+      const records = collectManualRecords();
+      if (!records.length) {
+        showStatus(el.manualStatus, 'At least 1 row is required.', 'error');
+        return;
+      }
+      showStatus(el.manualStatus, 'Manual data ready.', 'ok');
+      startDashboard(records);
+    });
+
+    el.changeSourceLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      backToImport();
+    });
+
+    el.copySummaryBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(el.summaryText.textContent);
+        const prev = el.copySummaryBtn.textContent;
+        el.copySummaryBtn.textContent = 'Copied';
+        setTimeout(() => {
+          el.copySummaryBtn.textContent = prev;
+        }, 1400);
+      } catch {
+        el.copySummaryBtn.textContent = 'Copy failed';
+      }
+    });
+
+    el.bankFilter.addEventListener('change', () => {
+      if (state.aggregates) drawServiceBar(state.aggregates);
+    });
+
+    el.serviceFilter.addEventListener('change', () => {
+      if (state.aggregates) drawServiceBar(state.aggregates);
+    });
+
+    el.banksAuthUrl.value = 'https://auth.diamond-preprod.treasury-factory.com/oauth/token';
+    el.banksBaseUrl.value = 'https://api.diamond-preprod.treasury-factory.com/api';
+    el.banksScope.value = 'bank-scope';
+    el.banksProxyUrl.value = 'http://localhost:4000/api/v1/kyriba/banks';
+    el.ptPageInfo.textContent = 'Page 0 / 0';
+    el.ptPrevPageBtn.disabled = true;
+    el.ptNextPageBtn.disabled = true;
+    syncPtScrollAssistWidth();
+    syncScopeModeUI();
+    addManualRow();
+  </script>
+</body>
+</html>
