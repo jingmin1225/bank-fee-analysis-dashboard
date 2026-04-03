@@ -350,6 +350,11 @@
       background: #fff;
     }
 
+    #filePanel .preview-wrap {
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
     #ptPreviewWrap .preview-wrap {
       display: block;
       max-width: 100%;
@@ -715,7 +720,7 @@
           </div>
           <div class="status" id="fileStatus"></div>
           <div id="filePreviewSection" class="hidden">
-            <div class="small-note">Preview (first 5 rows)</div>
+            <div class="small-note" id="filePreviewMeta">Preview (all rows)</div>
             <div class="preview-wrap"><table id="previewTable"></table></div>
             <div class="actions">
               <button id="fileLoadBtn" class="btn primary">Load Dashboard &rarr;</button>
@@ -907,6 +912,7 @@
         open: false,
         step: 0,
       },
+      fileRowSelection: [],
       charts: {
         doughnut: null,
         bankBar: null,
@@ -925,6 +931,7 @@
       fileInput: document.getElementById('fileInput'),
       fileStatus: document.getElementById('fileStatus'),
       filePreviewSection: document.getElementById('filePreviewSection'),
+      filePreviewMeta: document.getElementById('filePreviewMeta'),
       previewTable: document.getElementById('previewTable'),
       fileLoadBtn: document.getElementById('fileLoadBtn'),
       banksAuthUrl: document.getElementById('banksAuthUrl'),
@@ -1396,14 +1403,26 @@
     }
 
     function renderPreview(records) {
-      const subset = records.slice(0, 5);
-      if (!subset.length) {
+      if (!records.length) {
         el.previewTable.innerHTML = '';
+        el.filePreviewMeta.textContent = 'Preview (all rows)';
         return;
       }
+
+      if (!Array.isArray(state.fileRowSelection) || state.fileRowSelection.length !== records.length) {
+        state.fileRowSelection = records.map(() => true);
+      }
+      const selectedCount = state.fileRowSelection.filter(Boolean).length;
+      el.filePreviewMeta.textContent = `Preview (all rows): ${records.length} rows, ${selectedCount} selected`;
+
       const cols = ['entity', 'service_code', 'description', 'actual_price', 'actual_volume', 'actual_charge', 'contract_charge', 'charge_variance'];
-      const thead = `<thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
-      const tbody = `<tbody>${subset.map(r => `<tr>${cols.map(c => `<td>${typeof r[c] === 'number' ? r[c].toFixed(2) : r[c]}</td>`).join('')}</tr>`).join('')}</tbody>`;
+      const allSelected = selectedCount > 0 && selectedCount === records.length;
+      const thead = `<thead><tr><th><input id="fileSelectAll" type="checkbox" ${allSelected ? 'checked' : ''} /></th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
+      const tbody = `<tbody>${records.map((r, idx) => `
+        <tr>
+          <td><input class="file-row-select" data-row-index="${idx}" type="checkbox" ${state.fileRowSelection[idx] ? 'checked' : ''} /></td>
+          ${cols.map(c => `<td>${typeof r[c] === 'number' ? r[c].toFixed(2) : (r[c] ?? '')}</td>`).join('')}
+        </tr>`).join('')}</tbody>`;
       el.previewTable.innerHTML = thead + tbody;
     }
 
@@ -1695,8 +1714,10 @@
           const lines = raw.split(/\r?\n/);
           const isLikelyServiceHeaderLine = (line) => {
             const norm = normalizeKey(line || '');
-            return norm.includes('service_code') &&
-              (norm.includes('bank_code') || norm.includes('actual_price') || norm.includes('actual_charge'));
+            const hasService = norm.includes('service_code') || (norm.includes('service') && norm.includes('code'));
+            const hasBank = norm.includes('bank_code') || (norm.includes('bank') && norm.includes('code'));
+            const hasAmount = norm.includes('actual_price') || norm.includes('actual_charge') || norm.includes('actual');
+            return hasService && (hasBank || hasAmount);
           };
 
           const parseHeaderContext = (lineIndex) => {
@@ -2317,6 +2338,7 @@
     el.fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       state.stagedRecords = [];
+      state.fileRowSelection = [];
       el.filePreviewSection.classList.add('hidden');
       showStatus(el.fileStatus, '');
 
@@ -2338,6 +2360,7 @@
         }
 
         state.stagedRecords = records;
+        state.fileRowSelection = records.map(() => true);
         renderPreview(records);
         el.filePreviewSection.classList.remove('hidden');
         showStatus(el.fileStatus, `Parsed ${records.length} records. Preview ready.`, 'ok');
@@ -2348,9 +2371,29 @@
 
     el.fileLoadBtn.addEventListener('click', () => {
       try {
-        startDashboard(state.stagedRecords);
+        const selectedRecords = state.stagedRecords.filter((_, idx) => state.fileRowSelection[idx]);
+        if (!selectedRecords.length) throw new Error('Select at least 1 row from preview to load.');
+        startDashboard(selectedRecords);
       } catch (err) {
         showStatus(el.fileStatus, err.message, 'error');
+      }
+    });
+
+    el.previewTable.addEventListener('change', (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      if (target.id === 'fileSelectAll') {
+        const checked = !!target.checked;
+        state.fileRowSelection = state.stagedRecords.map(() => checked);
+        renderPreview(state.stagedRecords);
+        return;
+      }
+      if (target.classList.contains('file-row-select')) {
+        const idx = Number(target.dataset.rowIndex);
+        if (Number.isInteger(idx) && idx >= 0 && idx < state.fileRowSelection.length) {
+          state.fileRowSelection[idx] = !!target.checked;
+          renderPreview(state.stagedRecords);
+        }
       }
     });
 
