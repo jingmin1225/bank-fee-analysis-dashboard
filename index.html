@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root {
       --bg: #eeeff0;
@@ -74,21 +75,6 @@
       padding: 72px 30px 28px;
       color: #fff;
       background: linear-gradient(114deg, #172534 0%, #13212f 100%);
-    }
-
-    .import-head::before {
-      content: "Kyriba        Liquidity Performance        Products        Solutions        Resources        Partners        Company";
-      position: absolute;
-      top: 14px;
-      left: 30px;
-      right: 30px;
-      font-size: 0.76rem;
-      font-weight: 600;
-      letter-spacing: 0.008em;
-      opacity: 0.84;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .import-head h1 {
@@ -503,20 +489,6 @@
       overflow: hidden;
     }
 
-    .dashboard header::before {
-      content: "Kyriba        Liquidity Performance        Products        Solutions        Resources        Partners        Company";
-      position: absolute;
-      top: 14px;
-      left: 22px;
-      right: 22px;
-      font-size: 0.74rem;
-      font-weight: 600;
-      opacity: 0.84;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
     .dashboard h2 {
       margin: 0;
       font-family: "Space Grotesk", "Manrope", sans-serif;
@@ -738,8 +710,8 @@
 
         <div id="filePanel" class="panel">
           <div>
-            <label for="fileInput">CSV or JSON file</label>
-            <input id="fileInput" type="file" accept=".csv,.json,application/json,text/csv" />
+            <label for="fileInput">CSV, Excel, or JSON file</label>
+            <input id="fileInput" type="file" accept=".csv,.xlsx,.xls,.json,application/json,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
           </div>
           <div class="status" id="fileStatus"></div>
           <div id="filePreviewSection" class="hidden">
@@ -1300,6 +1272,24 @@
       }
       out.push(current);
       return out;
+    }
+
+    async function parseExcelFile(file) {
+      if (typeof XLSX === 'undefined') {
+        throw new Error('Excel parser is not available. Please refresh and try again.');
+      }
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array', raw: false });
+      const firstSheetName = workbook.SheetNames?.[0];
+      if (!firstSheetName) throw new Error('Excel file has no worksheet.');
+      const worksheet = workbook.Sheets[firstSheetName];
+      const csvText = XLSX.utils.sheet_to_csv(worksheet, {
+        FS: ',',
+        RS: '\n',
+        blankrows: false,
+      });
+      if (!String(csvText || '').trim()) throw new Error('Excel worksheet is empty.');
+      return parseCSV(csvText);
     }
 
     function aggregateRecords(records) {
@@ -2315,15 +2305,19 @@
 
       if (!file) return;
       try {
-        const text = await file.text();
+        const fileName = file.name.toLowerCase();
         let records = [];
-        if (file.name.toLowerCase().endsWith('.csv')) {
+        if (fileName.endsWith('.csv')) {
+          const text = await file.text();
           records = parseCSV(text);
-        } else if (file.name.toLowerCase().endsWith('.json')) {
+        } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+          records = await parseExcelFile(file);
+        } else if (fileName.endsWith('.json')) {
+          const text = await file.text();
           const json = JSON.parse(text);
           records = parseDashboardJSON(json);
         } else {
-          throw new Error('Unsupported format. Use CSV or JSON.');
+          throw new Error('Unsupported format. Use CSV, Excel (.xlsx/.xls), or JSON.');
         }
 
         state.stagedRecords = records;
