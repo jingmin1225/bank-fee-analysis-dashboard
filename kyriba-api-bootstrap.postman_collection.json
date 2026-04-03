@@ -1,0 +1,116 @@
+{
+  "info": {
+    "name": "Kyriba API Bootstrap",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1) Get OAuth Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "value": "client_credentials",
+              "type": "text"
+            },
+            {
+              "key": "client_id",
+              "value": "{{client_id}}",
+              "type": "text"
+            },
+            {
+              "key": "client_secret",
+              "value": "{{client_secret}}",
+              "type": "text"
+            },
+            {
+              "key": "scope",
+              "value": "{{scope}}",
+              "type": "text"
+            }
+          ]
+        },
+        "url": "{{token_url}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Token response is successful', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const r = pm.response.json();",
+              "pm.environment.set('access_token', r.access_token);",
+              "pm.test('access_token saved', function () {",
+              "  pm.expect(pm.environment.get('access_token')).to.be.a('string').and.not.empty;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2) Get Kyriba Data (set fees_endpoint first)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}{{fees_endpoint}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Data response is successful', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const raw = pm.response.json();",
+              "const rows = raw.data || raw.items || raw.results || (Array.isArray(raw) ? raw : []);",
+              "const records = rows.map(x => {",
+              "  const actual_price = Number(x.actual_price ?? x.unit_price ?? x.price ?? 0);",
+              "  const actual_volume = Number(x.actual_volume ?? x.volume ?? x.qty ?? 0);",
+              "  const actual_charge = Number(x.actual_charge ?? (actual_price * actual_volume));",
+              "  const contract_charge = Number(x.contract_charge ?? x.contracted_fee ?? 0);",
+              "  return {",
+              "    entity: String(x.entity ?? x.bank_name ?? 'Unknown'),",
+              "    service_code: String(x.service_code ?? x.service ?? 'N/A'),",
+              "    bank_code: String(x.bank_code ?? ''),",
+              "    description: String(x.description ?? '-'),",
+              "    actual_price,",
+              "    actual_volume,",
+              "    actual_charge,",
+              "    contract_charge,",
+              "    charge_variance: actual_charge - contract_charge",
+              "  };",
+              "});",
+              "const dashboardData = { records };",
+              "pm.environment.set('dashboard_payload', JSON.stringify(dashboardData, null, 2));",
+              "console.log('dashboard_payload', dashboardData);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

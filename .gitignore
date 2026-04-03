@@ -30,3 +30,9 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# local artifacts
+Postman-mac.zip
+Postman.app/
+__MACOSX/
+node-v20.20.2.pkg

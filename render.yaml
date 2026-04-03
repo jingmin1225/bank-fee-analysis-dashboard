@@ -4,7 +4,7 @@ services:
     name: bam-api
     runtime: node
     region: frankfurt          # closest to Lyon/EU
-    plan: starter              # $7/mo — upgrade to standard for prod
+    plan: free                 # free tier — upgrade to starter ($7/mo) for prod
     rootDir: backend
     buildCommand: npm install
     startCommand: npm start

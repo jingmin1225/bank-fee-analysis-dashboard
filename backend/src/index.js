@@ -16,14 +16,24 @@ const entityDocRoutes   = require('./routes/entityDocuments');
 const requirementRoutes = require('./routes/documentRequirements');
 const notificationRoutes= require('./routes/notifications');
 const apiIntegRoutes    = require('./routes/apiIntegrations');
+const kyribaProxyRoutes = require('./routes/kyribaProxy');
 
 const app  = express();
 const PORT = process.env.PORT || 4000;
 
 /* ── Security & parsing ── */
 app.use(helmet());
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: (process.env.CORS_ORIGINS || '').split(',').map(s => s.trim()),
+  origin: (origin, cb) => {
+    if (!origin || origin === 'null') return cb(null, true); // supports file:// local HTML
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error(`CORS blocked for origin: ${origin}`));
+  },
   credentials: true,
 }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
@@ -48,6 +58,7 @@ app.use(`${api}/entity-documents`,     entityDocRoutes);
 app.use(`${api}/document-requirements`,requirementRoutes);
 app.use(`${api}/notifications`,        notificationRoutes);
 app.use(`${api}/api-integrations`,     apiIntegRoutes);
+app.use(`${api}/kyriba`,               kyribaProxyRoutes);
 
 /* ── 404 ── */
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
