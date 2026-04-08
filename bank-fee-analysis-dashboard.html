@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
   <style>
     :root {
       --bg: #eeeff0;
@@ -716,8 +717,8 @@
 
         <div id="filePanel" class="panel">
           <div>
-            <label for="fileInput">CSV, Excel, or JSON file</label>
-            <input id="fileInput" type="file" accept=".csv,.xlsx,.xls,.json,application/json,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
+            <label for="fileInput">CSV, Excel, Word, or JSON file</label>
+            <input id="fileInput" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.doc,.docx,.json,application/json,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword" />
           </div>
           <div class="status" id="fileStatus"></div>
           <div id="filePreviewSection" class="hidden">
@@ -1243,7 +1244,26 @@
           parsedRows.push(obj);
         }
       }
-      if (parsedRows.length) return parsedRows.map(mapPtRowToRecord);
+      const structuredRows = parsedRows.map((r) => ({ ...r, ...mapPtRowToRecord(r) }));
+      const universalRows = parseTabularSectionsFromText(text);
+      if (structuredRows.length || universalRows.length) {
+        const seen = new Set();
+        const merged = [];
+        [...structuredRows, ...universalRows].forEach((r) => {
+          const key = [
+            r.entity || '',
+            r.service_code || '',
+            r.bank_code || '',
+            r.actual_charge || '',
+            r.contract_charge || '',
+            r.charge_variance || '',
+          ].join('|');
+          if (seen.has(key)) return;
+          seen.add(key);
+          merged.push(r);
+        });
+        if (merged.length) return merged;
+      }
 
       // Simple CSV fallback: first row is header
       const rows = nonEmpty.map(parseCSVLine);
@@ -1254,7 +1274,7 @@
         headers.forEach((h, idx) => {
           rowObj[h] = rows[i][idx] ?? '';
         });
-        records.push(mapToRecord(rowObj));
+        records.push({ ...rowObj, ...mapToRecord(rowObj) });
       }
       return records;
     }
@@ -1282,6 +1302,183 @@
       }
       out.push(current);
       return out;
+    }
+
+    const UNIVERSAL_FIELD_ALIASES = {
+      service_code: ['service code', 'service_code', 'servicecode'],
+      afp_code: ['afp code', 'afp_code', 'afpcode'],
+      bank_code: ['bank code', 'bank_code', 'bankcode'],
+      actual_price: ['actual price', 'actual_price', 'actual unit price'],
+      actual_volume: ['actual volume', 'actual_volume', 'actual vol', 'actualvol'],
+      actual_charge: ['actual charge', 'actual_charge', 'actual service charge'],
+      actual_settlement: ['actual settlement', 'actual_settlement'],
+      price_identifier_code: ['price identifier code', 'price_identifier_code'],
+      contract_unit_price: ['contract unit price', 'contract_unit_price'],
+      contract_volume: ['contract volume', 'contract_volume'],
+      volume_check: ['volume check', 'volume_check'],
+      contract_charge: ['contract charge', 'contract_charge', 'contracted charge'],
+      price_variances: ['price variances', 'price_variances', 'price variance'],
+      volume_variances: ['volume variances', 'volume_variances', 'volume variance'],
+      charge_variances: ['charge variances', 'charge_variances', 'charge variance'],
+      settlement_variance: ['settlement variance', 'settlement_variance'],
+      avg_price: ['avg price', 'avg_price', 'average price'],
+      avg_volume: ['avg volume', 'avg_volume', 'average volume'],
+      avg_charge: ['avg charge', 'avg_charge', 'average charge'],
+      avg_settlement: ['avg settlement', 'avg_settlement', 'average settlement'],
+      avg_price_var: ['avg price var.', 'avg price var', 'avg_price_var', 'average price var'],
+      avg_volume_var: ['avg volume var.', 'avg volume var', 'avg_volume_var', 'average volume var'],
+      avg_charge_var: ['avg charge var.', 'avg charge var', 'avg_charge_var', 'average charge var'],
+      avg_settlement_var: ['avg settlement var.', 'avg settlement var', 'avg_settlement_var', 'average settlement var'],
+      alternate_code: ['alternate code', 'alternate_code', 'alt code'],
+      description: ['description'],
+      short_description: ['short description', 'short_description'],
+      family_code: ['family code', 'family_code'],
+      group_code: ['group code', 'group_code'],
+      line_code: ['line code', 'line_code'],
+      reference_identification_qualifier: ['reference identification qualifier', 'reference_identification_qualifier'],
+      reference_identification: ['reference identification', 'reference_identification'],
+      statement_unit_price_amount: ['statement - unit price amount', 'statement unit price amount', 'statement_unit_price_amount'],
+      statement_unit_price_currency: ['statement - unit price currency', 'statement unit price currency', 'statement_unit_price_currency'],
+      statement_service_charge_amount: ['statement - service charge amount', 'statement service charge amount', 'statement_service_charge_amount'],
+      statement_service_charge_currency: ['statement - service charge currency', 'statement service charge currency', 'statement_service_charge_currency'],
+      statement_settlement_amount: ['statement - settlement amount', 'statement settlement amount', 'statement_settlement_amount'],
+      statement_settlement_currency: ['statement - settlement currency', 'statement settlement currency', 'statement_settlement_currency'],
+      bank_exchange_rate: ['bank exchange rate', 'bank_exchange_rate'],
+    };
+
+    const UNIVERSAL_FIELD_KEYS = Object.keys(UNIVERSAL_FIELD_ALIASES);
+
+    function canonicalFieldFromHeader(header) {
+      const n = normalizeKey(header);
+      for (const [field, aliases] of Object.entries(UNIVERSAL_FIELD_ALIASES)) {
+        for (const alias of aliases) {
+          if (n === normalizeKey(alias)) return field;
+        }
+      }
+      for (const [field, aliases] of Object.entries(UNIVERSAL_FIELD_ALIASES)) {
+        for (const alias of aliases) {
+          if (n.includes(normalizeKey(alias))) return field;
+        }
+      }
+      return '';
+    }
+
+    function splitLineByDelimiter(line, delimiter) {
+      if (delimiter === ',') return parseCSVLine(line);
+      return String(line || '').split(delimiter);
+    }
+
+    function detectDelimiter(line) {
+      const s = String(line || '');
+      const candidates = [',', '\t', ';', '|'];
+      let winner = ',';
+      let best = -1;
+      for (const d of candidates) {
+        const count = s.split(d).length - 1;
+        if (count > best) {
+          best = count;
+          winner = d;
+        }
+      }
+      if (best <= 0 && /\s{2,}/.test(s)) return '  ';
+      return winner;
+    }
+
+    function splitGenericLine(line, delimiter) {
+      if (delimiter === '  ') return String(line || '').trim().split(/\s{2,}/);
+      return splitLineByDelimiter(line, delimiter);
+    }
+
+    function headerScore(cells) {
+      let score = 0;
+      cells.forEach((c) => {
+        if (canonicalFieldFromHeader(c)) score += 1;
+      });
+      return score;
+    }
+
+    function parseTabularSectionsFromText(text) {
+      const lines = String(text || '').split(/\r?\n/);
+      const rows = [];
+
+      const readHeaderContext = (lineIndex) => {
+        const start = Math.max(0, lineIndex - 40);
+        const block = lines.slice(start, lineIndex).join('\n');
+        const fromTo = parseFromToFromText(block);
+        return {
+          entity: parseEntityFromText(block),
+          fromDate: fromTo.fromDate || '',
+          toDate: fromTo.toDate || '',
+          currencyCode: parseCurrencyFromText(block),
+        };
+      };
+
+      for (let i = 0; i < lines.length; i += 1) {
+        const rawLine = lines[i] || '';
+        const trimmed = rawLine.trim();
+        if (!trimmed) continue;
+
+        const delimiter = detectDelimiter(rawLine);
+        const headerCells = splitGenericLine(rawLine, delimiter).map((c) => String(c || '').trim());
+        const score = headerScore(headerCells);
+        if (score < 2 || headerCells.length < 3) continue;
+
+        const context = readHeaderContext(i);
+        for (let j = i + 1; j < lines.length; j += 1) {
+          const rowRaw = lines[j] || '';
+          const rowTrim = rowRaw.trim();
+          if (!rowTrim) continue;
+
+          const maybeHeaderCells = splitGenericLine(rowRaw, detectDelimiter(rowRaw)).map((c) => String(c || '').trim());
+          if (headerScore(maybeHeaderCells) >= 2 && maybeHeaderCells.length >= 3) {
+            i = j - 1;
+            break;
+          }
+
+          const values = splitGenericLine(rowRaw, delimiter).map((v) => String(v || '').trim());
+          if (!values.some((v) => v)) continue;
+
+          const obj = {};
+          headerCells.forEach((h, idx) => {
+            const field = canonicalFieldFromHeader(h) || normalizeKey(h);
+            if (!field) return;
+            obj[field] = values[idx] ?? '';
+          });
+          if (!obj.entity && context.entity) obj.entity = context.entity;
+          if (!obj.period_start_date && context.fromDate) obj.period_start_date = context.fromDate;
+          if (!obj.period_end_date && context.toDate) obj.period_end_date = context.toDate;
+          if (!obj.currency_code && context.currencyCode) obj.currency_code = context.currencyCode;
+
+          const nonEmptyMapped = Object.keys(obj).filter((k) => String(obj[k] || '').trim() !== '').length;
+          if (nonEmptyMapped < 2) continue;
+
+          const merged = { ...obj, ...mapPtRowToRecord(obj) };
+          if (merged.charge_variances !== undefined && merged.charge_variance === undefined) {
+            merged.charge_variance = toNumber(merged.charge_variances);
+          }
+          rows.push(merged);
+        }
+      }
+      return rows;
+    }
+
+    async function parseWordFile(file) {
+      const fileName = String(file?.name || '').toLowerCase();
+      const isDocx = fileName.endsWith('.docx');
+      let text = '';
+
+      if (isDocx && typeof mammoth !== 'undefined') {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        text = String(result?.value || '').trim();
+      } else {
+        text = String(await file.text()).trim();
+      }
+
+      if (!text) throw new Error('Word file has no readable text content.');
+      const rows = parseTabularSectionsFromText(text);
+      if (!rows.length) throw new Error('No mappable rows found in Word file.');
+      return rows;
     }
 
     async function parseExcelFile(file) {
@@ -1416,7 +1613,12 @@
       const selectedCount = state.fileRowSelection.filter(Boolean).length;
       el.filePreviewMeta.textContent = `Preview (all rows): ${records.length} rows, ${selectedCount} selected`;
 
-      const cols = ['entity', 'service_code', 'description', 'actual_price', 'actual_volume', 'actual_charge', 'contract_charge', 'charge_variance'];
+      const preferredCore = ['entity', 'service_code', 'afp_code', 'bank_code', 'description', 'short_description', 'actual_price', 'actual_volume', 'actual_charge', 'contract_charge', 'charge_variance', 'period_start_date', 'period_end_date', 'currency_code'];
+      const allKeys = new Set();
+      records.forEach((r) => Object.keys(r || {}).forEach((k) => allKeys.add(k)));
+      const preferred = [...preferredCore, ...UNIVERSAL_FIELD_KEYS].filter((k, idx, arr) => arr.indexOf(k) === idx && allKeys.has(k));
+      const others = [...allKeys].filter((k) => !preferred.includes(k));
+      const cols = [...preferred, ...others];
       const allSelected = selectedCount > 0 && selectedCount === records.length;
       const thead = `<thead><tr><th><input id="fileSelectAll" type="checkbox" ${allSelected ? 'checked' : ''} /></th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
       const tbody = `<tbody>${records.map((r, idx) => `
@@ -2350,14 +2552,20 @@
         if (fileName.endsWith('.csv')) {
           const text = await file.text();
           records = parseCSV(text);
+        } else if (fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
+          const text = await file.text();
+          records = parseTabularSectionsFromText(text);
+          if (!records.length) records = parseCSV(text);
         } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
           records = await parseExcelFile(file);
+        } else if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
+          records = await parseWordFile(file);
         } else if (fileName.endsWith('.json')) {
           const text = await file.text();
           const json = JSON.parse(text);
           records = parseDashboardJSON(json);
         } else {
-          throw new Error('Unsupported format. Use CSV, Excel (.xlsx/.xls), or JSON.');
+          throw new Error('Unsupported format. Use CSV/TSV/TXT, Excel (.xlsx/.xls), Word (.doc/.docx), or JSON.');
         }
 
         state.stagedRecords = records;
