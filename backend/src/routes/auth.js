@@ -5,6 +5,14 @@ const { query }       = require('../config/db');
 const { authenticate }= require('../middleware/auth');
 const { AppError }    = require('../middleware/errorHandler');
 
+function normalizeRole(role) {
+  const value = String(role || '').trim().toLowerCase();
+  if (['admin', 'treasurer', 'document_manager', 'individual'].includes(value)) return value;
+  if (value === 'document manager') return 'document_manager';
+  if (value === 'individual (signer/id owner)') return 'individual';
+  return 'individual';
+}
+
 /* POST /api/v1/auth/login */
 router.post('/login', async (req, res, next) => {
   try {
@@ -44,7 +52,7 @@ router.post('/register', async (req, res, next) => {
     const { rows } = await query(
       `INSERT INTO users (email, password_hash, full_name, role)
        VALUES ($1,$2,$3,$4) RETURNING id, email, role, full_name`,
-      [email.toLowerCase(), hash, full_name, role || 'individual']
+      [email.toLowerCase(), hash, full_name, normalizeRole(role)]
     );
     res.status(201).json({ user: rows[0] });
   } catch (err) {

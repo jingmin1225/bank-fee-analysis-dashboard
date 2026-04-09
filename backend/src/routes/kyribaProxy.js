@@ -10,6 +10,16 @@ function requiredEnv(name) {
   return String(v).trim();
 }
 
+function getBodyAlias(cfg, keys) {
+  for (const key of keys) {
+    const value = cfg?.[key];
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      return String(value).trim();
+    }
+  }
+  return '';
+}
+
 async function parseResponseBodySafe(resp) {
   const contentType = (resp.headers.get('content-type') || '').toLowerCase();
   const text = await resp.text().catch(() => '');
@@ -102,12 +112,12 @@ async function getKyribaToken() {
 }
 
 async function getKyribaTokenFromBody(cfg) {
-  const tokenUrl = String(cfg.token_url || '').trim();
-  const clientId = String(cfg.client_id || '').trim();
-  const clientSecret = String(cfg.client_secret || '').trim();
-  const scope = String(cfg.scope || '').trim();
+  const tokenUrl = getBodyAlias(cfg, ['token_url', 'authUrl']);
+  const clientId = getBodyAlias(cfg, ['client_id', 'clientId']);
+  const clientSecret = getBodyAlias(cfg, ['client_secret', 'clientSecret']);
+  const scope = getBodyAlias(cfg, ['scope']);
   if (!tokenUrl || !clientId || !clientSecret) {
-    throw new AppError('token_url, client_id, and client_secret are required', 400);
+    throw new AppError('token_url/authUrl, client_id/clientId, and client_secret/clientSecret are required', 400);
   }
 
   const params = new URLSearchParams({
@@ -318,6 +328,85 @@ router.post('/token', async (req, res, next) => {
   try {
     const accessToken = await getKyribaTokenFromBody(req.body || {});
     res.json({ access_token: accessToken });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* POST /api/v1/kyriba/entities
+   Body: { scope, base_url, authUrl?, client_id?, clientId?, client_secret?, clientSecret?, access_token? } */
+router.post('/entities', async (req, res, next) => {
+  try {
+    const cfg = req.body || {};
+    const scope = String(cfg.scope || 'Companies').trim();
+    const path = scope === 'Accounts' ? '/v1/accounts' : '/v1/companies';
+    const data = await fetchKyribaJsonFromBody(path, cfg);
+    const records = Array.isArray(data) ? data : Object.values(data || {}).find(Array.isArray) || [];
+    const entities = records.map((item) => ({
+      id: item.id || item.code || item.accountId || item.companyId || '',
+      name: item.name || item.description1 || item.description || item.label || 'Unnamed',
+      code: item.code || item.accountCode || item.companyCode || item.reference || item.id || '',
+      entityType: scope === 'Accounts' ? 'Account' : 'Company',
+      country: item.country || item.countryCode || '',
+      accountCurrency: item.currency || item.currencyCode || item.accountCurrency || '',
+      source: 'Kyriba API',
+      raw: item,
+    }));
+    res.json({ entities, endpoint: path });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* POST /api/v1/kyriba/users
+   Body: { base_url, authUrl?, client_id?, clientId?, client_secret?, clientSecret?, access_token? } */
+router.post('/users', async (req, res, next) => {
+  try {
+    const cfg = req.body || {};
+    const data = await fetchKyribaJsonFromBody('/v1/users', cfg);
+    const records = Array.isArray(data) ? data : Object.values(data || {}).find(Array.isArray) || [];
+    const users = records.map((item) => ({
+      id: item.id || item.userId || item.uuid || item.login || item.email || '',
+      name: item.name || item.displayName || item.fullName || item.userName || 'Unnamed',
+      login: item.login || item.username || item.userLogin || '',
+      email: item.email || item.mail || item.userEmail || '',
+      kyribaUserId: item.code || item.id || item.userId || item.uuid || '',
+      raw: item,
+    }));
+    res.json({ users, endpoint: '/v1/users' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* GET/POST /api/v1/kyriba/user-groups
+   Body: { base_url, authUrl?, client_id?, clientId?, client_secret?, clientSecret?, access_token? } */
+router.get('/user-groups', async (req, res, next) => {
+  try {
+    const data = await fetchKyribaJson('/v1/user-groups');
+    const records = Array.isArray(data) ? data : Object.values(data || {}).find(Array.isArray) || [];
+    const groups = records.map((item) => ({
+      id: item.id || item.groupId || item.code || item.name || '',
+      name: item.name || item.groupName || item.label || item.code || item.id || 'Unnamed',
+      raw: item,
+    }));
+    res.json({ groups, endpoint: '/v1/user-groups' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/user-groups', async (req, res, next) => {
+  try {
+    const cfg = req.body || {};
+    const data = await fetchKyribaJsonFromBody('/v1/user-groups', cfg);
+    const records = Array.isArray(data) ? data : Object.values(data || {}).find(Array.isArray) || [];
+    const groups = records.map((item) => ({
+      id: item.id || item.groupId || item.code || item.name || '',
+      name: item.name || item.groupName || item.label || item.code || item.id || 'Unnamed',
+      raw: item,
+    }));
+    res.json({ groups, endpoint: '/v1/user-groups' });
   } catch (err) {
     next(err);
   }

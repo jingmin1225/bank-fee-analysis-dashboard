@@ -15,6 +15,7 @@ const entityRoutes      = require('./routes/entities');
 const entityDocRoutes   = require('./routes/entityDocuments');
 const requirementRoutes = require('./routes/documentRequirements');
 const notificationRoutes= require('./routes/notifications');
+const workspaceRoutes   = require('./routes/workspaces');
 const apiIntegRoutes    = require('./routes/apiIntegrations');
 const kyribaProxyRoutes = require('./routes/kyribaProxy');
 
@@ -57,8 +58,10 @@ app.use(`${api}/entities`,             entityRoutes);
 app.use(`${api}/entity-documents`,     entityDocRoutes);
 app.use(`${api}/document-requirements`,requirementRoutes);
 app.use(`${api}/notifications`,        notificationRoutes);
+app.use(`${api}/workspaces`,           workspaceRoutes);
 app.use(`${api}/api-integrations`,     apiIntegRoutes);
 app.use(`${api}/kyriba`,               kyribaProxyRoutes);
+app.use('/api/kyriba',                 kyribaProxyRoutes);
 
 /* ── 404 ── */
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));

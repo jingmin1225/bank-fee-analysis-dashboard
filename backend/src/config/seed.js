@@ -16,7 +16,11 @@ async function seed() {
         ('admin@bam.local',    $1, 'System Admin',    'admin'),
         ('treasurer@bam.local',$2, 'Marie Treasurer', 'treasurer'),
         ('manager@bam.local',  $2, 'Sophie Laurent',  'document_manager'),
-        ('signer@bam.local',   $2, 'Jean Dupont',     'individual')
+        ('signer@bam.local',   $2, 'Jean Dupont',     'individual'),
+        ('alice.morel@company.com',  $2, 'Alice Morel',  'admin'),
+        ('james.wu@company.com',     $2, 'James Wu',     'treasurer'),
+        ('maria.garcia@company.com', $2, 'Maria Garcia',  'document_manager'),
+        ('sophie.laurent@company.com',$2, 'Sophie Laurent', 'individual')
       ON CONFLICT (email) DO NOTHING
     `, [adminHash, userHash]);
 
@@ -66,6 +70,10 @@ async function seed() {
     console.log('  treasurer@bam.local   / User1234!   (treasurer)');
     console.log('  manager@bam.local     / User1234!   (document_manager)');
     console.log('  signer@bam.local      / User1234!   (individual)');
+    console.log('  alice.morel@company.com / User1234! (admin)');
+    console.log('  james.wu@company.com    / User1234! (treasurer)');
+    console.log('  maria.garcia@company.com / User1234! (document_manager)');
+    console.log('  sophie.laurent@company.com / User1234! (individual)');
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('❌  Seed failed:', err.message);

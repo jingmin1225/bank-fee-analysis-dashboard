@@ -195,7 +195,17 @@ const migrations = [
 )`,
 
 /* ══════════════════════════════════════════
-   011 — updated_at trigger function
+   011 — WORKSPACE SNAPSHOTS
+══════════════════════════════════════════ */
+`CREATE TABLE IF NOT EXISTS workspace_snapshots (
+  owner_email      TEXT PRIMARY KEY,
+  workspace_state  JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`,
+
+/* ══════════════════════════════════════════
+   012 — updated_at trigger function
 ══════════════════════════════════════════ */
 `CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
@@ -204,7 +214,7 @@ $$ LANGUAGE plpgsql`,
 
 ...['request_types','document_types','documentation_rules','document_managers',
     'entities','entity_documents','document_requirements','api_integrations',
-    'users'].map(t =>
+    'workspace_snapshots','users'].map(t =>
   `CREATE OR REPLACE TRIGGER trg_${t}_updated_at
    BEFORE UPDATE ON ${t}
    FOR EACH ROW EXECUTE FUNCTION set_updated_at()`
